@@ -33,8 +33,8 @@ type RemoteAccessTarget struct {
 	// Can be either "tcp" or "udp".
 	Protocol string
 
-	// Device identifies the target device by its public key digest (SHA256).
-	Device string
+	// RemoteHost is the host of the remote machine to which the local port is forwarded.
+	RemoteHost string
 
 	// LocalPort is the port on the local machine to which the remote port is forwarded.
 	// If set to 0, a random port will be chosen.
@@ -44,8 +44,8 @@ type RemoteAccessTarget struct {
 	RemotePort uint16
 }
 
-// isValidDeviceID checks if the provided device ID is valid.
-func isValidDeviceID(deviceID string) bool {
+// IsValidDeviceID checks if the provided device ID is valid.
+func IsValidDeviceID(deviceID string) bool {
 	// make sure length is correct before we check the content
 	if len(deviceID) != 64 {
 		return false
@@ -63,39 +63,55 @@ func isValidDeviceID(deviceID string) bool {
 
 // ParseRemoteAccessTarget parses a remote access target string.
 // The target string has the following format:
-// <proto>:<local_port>:<device>:<remote_port>
+// <local_port>:<remote_host>:<remote_port>[/udp]
 func ParseRemoteAccessTarget(targetString string) (RemoteAccessTarget, error) {
 	target := RemoteAccessTarget{}
 
 	// Split the target string into its parts.
 	parts := strings.Split(targetString, ":")
 
-	if len(parts) != 4 {
+	if len(parts) != 3 {
 		return target, fmt.Errorf("invalid format")
-	}
-
-	switch parts[0] {
-	case TCP, UDP:
-		target.Protocol = parts[0]
-	default:
-		return target, fmt.Errorf("invalid protocol")
 	}
 
 	var err error
 
-	if target.LocalPort, err = parseNetworkPort(parts[1]); err != nil {
+	if target.LocalPort, err = parseNetworkPort(parts[0]); err != nil {
 		return target, fmt.Errorf("invalid local port: %w", err)
 	}
 
-	if target.Device = parts[2]; !isValidDeviceID(target.Device) {
-		return target, fmt.Errorf("invalid device")
+	target.RemoteHost = parts[1]
+
+	// Only localhost is supported as remote host at the moment.
+	// Once we roll out the new remote access solution, will allow any host in the same network.
+	if target.RemoteHost != "localhost" {
+		return target, fmt.Errorf("invalid remote host: only localhost is supported")
 	}
 
-	if target.RemotePort, err = parseNetworkPort(parts[3]); err != nil {
+	remotePort := parts[2]
+	if strings.HasSuffix(remotePort, "/udp") {
+		target.Protocol = UDP
+		remotePort = strings.TrimSuffix(remotePort, "/udp")
+	} else {
+		target.Protocol = TCP
+	}
+
+	if target.RemotePort, err = parseNetworkPort(remotePort); err != nil {
 		return target, fmt.Errorf("invalid remote port: %w", err)
 	}
 
 	return target, nil
+}
+
+// String returns the string representation of a remote access target.
+func (target RemoteAccessTarget) String() string {
+	base := fmt.Sprintf("%d:%s:%d", target.LocalPort, target.RemoteHost, target.RemotePort)
+
+	if target.Protocol == UDP {
+		return base + "/udp"
+	}
+
+	return base
 }
 
 // parseNetworkPort parses a network port string.

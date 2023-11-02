@@ -20,11 +20,13 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/qbee-io/qbee-cli/client"
 )
 
 const (
+	connectDeviceOption = "device"
 	connectTargetOption = "target"
 )
 
@@ -32,9 +34,15 @@ var connectCommand = Command{
 	Description: "Connect to a device",
 	Options: []Option{
 		{
+			Name:     connectDeviceOption,
+			Short:    "d",
+			Help:     "Device ID (as Public Key Digest)",
+			Required: true,
+		},
+		{
 			Name:     connectTargetOption,
 			Short:    "t",
-			Help:     "Target defined as <proto>:<localPort>:<deviceID>:<remotePort>",
+			Help:     "Comma-separated targets definition <localPort>:<remoteHost>:<remotePort>[/udp]",
 			Required: true,
 		},
 	},
@@ -44,9 +52,19 @@ var connectCommand = Command{
 
 		ctx := context.Background()
 
-		target, err := client.ParseRemoteAccessTarget(opts[connectTargetOption])
-		if err != nil {
-			return fmt.Errorf("error parsing target: %w", err)
+		deviceID := opts[connectDeviceOption]
+		if !client.IsValidDeviceID(deviceID) {
+			return fmt.Errorf("invalid device ID %s", deviceID)
+		}
+
+		targets := make([]client.RemoteAccessTarget, 0)
+		for _, targetString := range strings.Split(opts[connectTargetOption], ",") {
+			target, err := client.ParseRemoteAccessTarget(targetString)
+			if err != nil {
+				return fmt.Errorf("error parsing target %s: %w", targetString, err)
+			}
+
+			targets = append(targets, target)
 		}
 
 		cli := client.New()
@@ -54,10 +72,10 @@ var connectCommand = Command{
 			cli = cli.WithBaseURL(baseURL)
 		}
 
-		if err = cli.Authenticate(ctx, email, password); err != nil {
+		if err := cli.Authenticate(ctx, email, password); err != nil {
 			return err
 		}
 
-		return cli.Connect(ctx, target)
+		return cli.Connect(ctx, deviceID, targets)
 	},
 }
