@@ -50,6 +50,9 @@ var connectCommand = Command{
 		}
 
 		cli := client.New()
+		if baseURL, ok := os.LookupEnv("QBEE_BASEURL"); ok {
+			cli = cli.WithBaseURL(baseURL)
+		}
 
 		if err = cli.Authenticate(ctx, email, password); err != nil {
 			return err
