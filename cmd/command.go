@@ -53,9 +53,6 @@ type Option struct {
 	// If no value is set and Default is an empty string, Target won't be executed.
 	Default string
 
-	// Value of the Option after evaluating flags.
-	Value string
-
 	// Hidden if set, the option won't be returned in the help message.
 	// This is useful for internal options.
 	Hidden bool

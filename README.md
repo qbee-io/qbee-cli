@@ -31,13 +31,14 @@ go run github.com/qbee-io/qbee-cli@latest
 export QBEE_EMAIL=<email>
 export QBEE_PASSWORD=<password>
 
-qbee-cli connect -t <protocol>:<localPort>:<deviceID>:<remotePort>
+qbee-cli connect -d <deviceID> -t <target>[,<target> ...]
 ```
 
 Where:
-- `protocol` is either `tcp` or `udp`
-- `localPort` is the local port on which tunnel will listen for connections/packets
 - `deviceID` identifies to which device we want to connect (public key digest)
+- `target` defines a singe port forwarding target as `<localPort>:<remoteHost>:<remotePort>`
+- `localPort` is the local port on which tunnel will listen for connections/packets
+- `remoteHost` must be set to _localhost_
 - `remotePort` is the remote port on which tunnel will connect to on the device
 
 # Use as a Go module

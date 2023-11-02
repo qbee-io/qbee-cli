@@ -33,73 +33,63 @@ func TestParseRemoteAccessTarget(t *testing.T) {
 	}{
 		{
 			name:         "valid tcp target",
-			targetString: "tcp:1:af973d5836408b20cf051342f1cbf75a1f9096385993f15a4645e4f75e75f288:2",
+			targetString: "1:localhost:2",
 			want: client.RemoteAccessTarget{
 				Protocol:   "tcp",
 				LocalPort:  1,
-				Device:     "af973d5836408b20cf051342f1cbf75a1f9096385993f15a4645e4f75e75f288",
+				RemoteHost: "localhost",
 				RemotePort: 2,
 			},
 		},
 		{
 			name:         "valid udp target",
-			targetString: "udp:1:af973d5836408b20cf051342f1cbf75a1f9096385993f15a4645e4f75e75f288:2",
+			targetString: "1:localhost:2/udp",
 			want: client.RemoteAccessTarget{
 				Protocol:   "udp",
 				LocalPort:  1,
-				Device:     "af973d5836408b20cf051342f1cbf75a1f9096385993f15a4645e4f75e75f288",
+				RemoteHost: "localhost",
 				RemotePort: 2,
 			},
 		},
 		{
 			name:         "invalid format",
-			targetString: "af973d5836408b20cf051342f1cbf75a1f9096385993f15a4645e4f75e75f288",
+			targetString: "localhost",
 			wantErr:      "invalid format",
 		},
 		{
-			name:         "unsupported protocol",
-			targetString: "x:1:af973d5836408b20cf051342f1cbf75a1f9096385993f15a4645e4f75e75f288:2",
-			wantErr:      "invalid protocol",
+			name:         "unsupported host",
+			targetString: "123:example.com:123",
+			wantErr:      "invalid remote host: only localhost is supported",
 		},
 		{
 			name:         "local port out of range",
-			targetString: "tcp:123456:af973d5836408b20cf051342f1cbf75a1f9096385993f15a4645e4f75e75f288:2",
+			targetString: "123456:localhost:2",
 			wantErr:      "invalid local port: invalid port number",
 		},
 		{
 			name:         "local port does not support service name",
-			targetString: "tcp:ssh:af973d5836408b20cf051342f1cbf75a1f9096385993f15a4645e4f75e75f288:2",
+			targetString: "ssh:localhost:2",
 			wantErr:      "invalid local port: invalid port number",
 		},
 		{
 			name:         "empty local port",
-			targetString: "tcp::af973d5836408b20cf051342f1cbf75a1f9096385993f15a4645e4f75e75f288:2",
+			targetString: ":localhost:2",
 			wantErr:      "invalid local port: empty port",
 		},
 		{
 			name:         "remote port out of range",
-			targetString: "tcp:1:af973d5836408b20cf051342f1cbf75a1f9096385993f15a4645e4f75e75f288:234567",
+			targetString: "1:localhost:234567",
 			wantErr:      "invalid remote port: invalid port number",
 		},
 		{
 			name:         "remote port does not support service name",
-			targetString: "tcp:1:af973d5836408b20cf051342f1cbf75a1f9096385993f15a4645e4f75e75f288:ssh",
+			targetString: "1:localhost:ssh",
 			wantErr:      "invalid remote port: invalid port number",
 		},
 		{
 			name:         "empty remote port",
-			targetString: "tcp:1:af973d5836408b20cf051342f1cbf75a1f9096385993f15a4645e4f75e75f288:",
+			targetString: "1:localhost:",
 			wantErr:      "invalid remote port: empty port",
-		},
-		{
-			name:         "invalid device ID length",
-			targetString: "tcp:1:abc:2",
-			wantErr:      "invalid device",
-		},
-		{
-			name:         "invalid device characters",
-			targetString: "tcp:1:xx973d5836408b20cf051342f1cbf75a1f9096385993f15a4645e4f75e75f288:2",
-			wantErr:      "invalid device",
 		},
 	}
 	for _, tt := range tests {

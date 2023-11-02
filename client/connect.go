@@ -157,10 +157,15 @@ func (cli *Client) GetRemoteAccessToken(ctx context.Context, req RemoteAccessTok
 }
 
 // Connect establishes a connection to a remote device.
-func (cli *Client) Connect(ctx context.Context, target RemoteAccessTarget) error {
+func (cli *Client) Connect(ctx context.Context, deviceID string, targets []RemoteAccessTarget) error {
+	ports := make([]string, len(targets))
+	for _, target := range targets {
+		ports = append(ports, fmt.Sprintf("%s:%d", target.Protocol, target.RemotePort))
+	}
+
 	remoteAccessTokenRequest := RemoteAccessTokenRequest{
-		DeviceID: target.Device,
-		Ports:    []string{fmt.Sprintf("%s:%d", target.Protocol, target.RemotePort)},
+		DeviceID: deviceID,
+		Ports:    ports,
 	}
 
 	remoteAccessToken, err := cli.GetRemoteAccessToken(ctx, remoteAccessTokenRequest)
@@ -176,20 +181,17 @@ func (cli *Client) Connect(ctx context.Context, target RemoteAccessTarget) error
 	address := remoteAccessToken.Connection.Address
 	if address == "" {
 		var deviceInventory *DeviceInventory
-		if deviceInventory, err = cli.GetDeviceInventory(ctx, target.Device); err != nil {
+		if deviceInventory, err = cli.GetDeviceInventory(ctx, deviceID); err != nil {
 			return fmt.Errorf("error getting device inventory: %w", err)
 		}
 
 		address = deviceInventory.SystemInfo.IPv4[remoteAccessInterfaceName]
 	}
 
-	remote := fmt.Sprintf("%s:%d", address, target.RemotePort)
-	if target.LocalPort > 0 {
-		remote = fmt.Sprintf("%d:%s", target.LocalPort, remote)
-	}
-
-	if target.Protocol == UDP {
-		remote += "/udp"
+	remotes := make([]string, len(targets))
+	for i, target := range targets {
+		target.RemoteHost = address
+		remotes[i] = target.String()
 	}
 
 	chiselClientConfig := &chisel.Config{
@@ -197,7 +199,7 @@ func (cli *Client) Connect(ctx context.Context, target RemoteAccessTarget) error
 		Server:    remoteAccessToken.Connection.URL,
 		Proxy:     proxyURL,
 		KeepAlive: remoteAccessKeepAlive,
-		Remotes:   []string{remote},
+		Remotes:   remotes,
 	}
 
 	var chiselClient *chisel.Client
