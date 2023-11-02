@@ -27,7 +27,7 @@ import (
 
 const (
 	connectDeviceOption = "device"
-	connectTargetOption = "tunnel"
+	connectTargetOption = "target"
 )
 
 var connectCommand = Command{

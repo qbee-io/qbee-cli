@@ -33,7 +33,7 @@ type RemoteAccessTarget struct {
 	// Can be either "tcp" or "udp".
 	Protocol string
 
-	// RemoteHost is the host of the remote machine to which the loca port is forwarded.
+	// RemoteHost is the host of the remote machine to which the local port is forwarded.
 	RemoteHost string
 
 	// LocalPort is the port on the local machine to which the remote port is forwarded.
