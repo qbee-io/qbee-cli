@@ -2,6 +2,8 @@ module github.com/qbee-io/qbee-cli
 
 go 1.21
 
+toolchain go1.21.4
+
 require (
 	github.com/jpillora/chisel v1.9.1
 	golang.org/x/net v0.17.0
