@@ -18,13 +18,15 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	"github.com/qbee-io/qbee-cli/client/config"
 )
 
-const deviceInventoryPath = "/api/v2/inventory/%s"
+const deviceInventoryPath = "/api/v2/inventory"
 
 // SystemInfo contains system information collected by the agent.
 type SystemInfo struct {
@@ -199,16 +201,233 @@ type DeviceInventory struct {
 	PushedConfig config.Pushed `json:"pushed_config"`
 }
 
+// InventoryListSearch defines search parameters for InventoryListQuery.
+type InventoryListSearch struct {
+	// NodeID - device public key digest (hex-encoded SHA256)
+	NodeID string `json:"node_id,omitempty"`
+
+	// UUID - device UUID (legacy identifier used by the remote access subsystem)
+	UUID string `json:"uuid,omitempty"`
+
+	// Title - fqhost, remoteaddr or device title (can be set in the attributes)
+	Title string `json:"title,omitempty"`
+
+	// Flavor - A variable containing an operating system identification string that is used to determine
+	// the current release of the operating system in a form that can be used as a label in naming.
+	// This is used, for instance, to detect which package name to choose when updating software binaries.
+	// Example: "ubuntu_22"
+	Flavor string `json:"flavor,omitempty"`
+
+	// Architecture - The variable containing the kernel's short architecture description (e.g. "x86_64")
+	Architecture string `json:"arch,omitempty"`
+
+	// IPAddress match on ipv4_first, ip_addresses, remoteaddr or ipv4 fields from inventory (exact match)
+	IPAddress string `json:"ip,omitempty"`
+
+	// MACAddress match on hardware_mac field from inventory (exact match)
+	MACAddress string `json:"mac,omitempty"`
+
+	// Description partial match on device description.
+	Description string `json:"description,omitempty"`
+
+	// Latitude and Longitude match on device location.
+	Latitude  string `json:"latitude,omitempty"`
+	Longitude string `json:"longitude,omitempty"`
+
+	// Country match on device location.
+	Country string `json:"country,omitempty"`
+
+	// City match on device location.
+	City string `json:"city,omitempty"`
+
+	// Zip match on device location.
+	Zip string `json:"zip,omitempty"`
+
+	// Address match on device location.
+	Address string `json:"address,omitempty"`
+
+	// DeviceAttribute - match on device attributes:
+	// - flavor,
+	// - architecture,
+	// - description,
+	// - lat/long,
+	// - country,
+	// - city,
+	// - zip,
+	// - address,
+	// - ipv4_first,
+	// - ip_addresses,
+	// - remoteaddr,
+	// - ipv4
+	// using OR condition and substring match
+	DeviceAttribute string `json:"device_attribute,omitempty"`
+
+	// Ancestors - array of parent nodes (exact match)
+	Ancestors []string `json:"ancestor_ids,omitempty"`
+
+	// Tags - array of tags which MUST be preset (exact match)
+	Tags []string `json:"tags,omitempty"`
+
+	// CommitSHA - match on active config commit sha (partial match)
+	CommitSHA string `json:"commit_sha,omitempty"`
+}
+
+// InventoryReportType defines format of the response payload.
+type InventoryReportType string
+
+const (
+	// InventoryReportTypeDetailed - detailed inventory report incl. complete device attributes and system info.
+	InventoryReportTypeDetailed InventoryReportType = "detailed"
+
+	// InventoryReportTypeShort - short inventory report, incl. only basic device information:
+	// system info:
+	// - fqhost
+	// - remoteaddr
+	// - ipv4
+	// - last_config_commit_id
+	// - last_policy_update
+	// device attributes:
+	// - device name
+	InventoryReportTypeShort InventoryReportType = "short"
+)
+
+// InventoryListQuery defines query parameters for InventoryList.
+type InventoryListQuery struct {
+	Search InventoryListSearch
+
+	// SortField defines field used to sort, 'title' by default.
+	// Supported sort fields:
+	// - title (fqhost or remoteaddr - depending on what is available)
+	// - device_name (from attribute)
+	// - last_reported_time
+	// - last_policy_update
+	// - commit_sha
+	SortField string
+
+	// SortDirection defines sort direction, 'desc' by default.
+	SortDirection string
+
+	// ItemsPerPage defines maximum number of records in result, default 30, max 1000
+	ItemsPerPage int
+
+	// Offset defines offset of the first record in result, default 0
+	Offset int
+
+	// ReportType defines format of the response payload.
+	ReportType InventoryReportType
+}
+
+// String returns string representation of InventoryListQuery which can be used as query string.
+func (q InventoryListQuery) String() (string, error) {
+	values := make(url.Values)
+
+	searchQueryJSON, err := json.Marshal(q.Search)
+	if err != nil {
+		return "", err
+	}
+
+	values.Set("search", string(searchQueryJSON))
+
+	if q.SortField != "" {
+		values.Set("sort_field", q.SortField)
+	}
+
+	if q.SortDirection != "" {
+		values.Set("sort_direction", q.SortDirection)
+	}
+
+	if q.ItemsPerPage != 0 {
+		values.Set("items_per_page", fmt.Sprintf("%d", q.ItemsPerPage))
+	}
+
+	if q.Offset != 0 {
+		values.Set("offset", fmt.Sprintf("%d", q.Offset))
+	}
+
+	if q.ReportType != "" {
+		values.Set("report_type", string(q.ReportType))
+	}
+
+	return values.Encode(), nil
+}
+
+// InventoryListItem contains device inventory information.
+type InventoryListItem struct {
+	// NodeID - device public key digest (hex-encoded SHA256)
+	NodeID string `json:"node_id"`
+
+	// PubKeyDigest - same as NodeID (for backwards compatibility)
+	PubKeyDigest string `json:"pub_key_digest"`
+
+	// UUID - device UUID (legacy identifier used by the remote access subsystem)
+	UUID string `json:"uuid"`
+
+	// System - system inventory.
+	System SystemInfo `json:"system"`
+
+	// LastReportedTime - timestamp of the last inventory report.
+	LastReportedTime int64 `json:"last_reported_time"`
+
+	// HeartbeatExpireSoft - timestamp when device will be considered delayed.
+	HeartbeatExpireSoft int64 `json:"exp_soft"`
+
+	// HeartbeatExpireHard - timestamp when device will be considered disconnected.
+	HeartbeatExpireHard int64 `json:"exp_hard"`
+
+	// Ancestors - array of ancestor nodes (incl. self).
+	Ancestors []string `json:"ancestors"`
+
+	// Attributes - device attributes.
+	Attributes DeviceAttributes `json:"attributes"`
+
+	// Title - device title.
+	Title string `json:"title"`
+
+	// AgentInterval - agent interval.
+	// DEPRECATED: This field doesn't provide valid information anymore.
+	AgentInterval string `json:"agentinterval"`
+
+	// Status - device status (online, delayed or disconnected).
+	Status string `json:"status"`
+
+	// Tags - device tags.
+	Tags []string `json:"tags"`
+}
+
+// InventoryListResponse contains list of device inventories.
+type InventoryListResponse struct {
+	Items []InventoryListItem `json:"items"`
+	Total int                 `json:"total"`
+}
+
 // GetDeviceInventory returns the device inventory for the given device ID.
 func (cli *Client) GetDeviceInventory(ctx context.Context, deviceID string) (*DeviceInventory, error) {
 	deviceInventory := new(DeviceInventory)
 
-	path := fmt.Sprintf(deviceInventoryPath, deviceID)
+	path := deviceInventoryPath + "/" + deviceID
 
-	err := cli.request(ctx, http.MethodGet, path, nil, deviceInventory)
+	err := cli.Call(ctx, http.MethodGet, path, nil, deviceInventory)
 	if err != nil {
 		return nil, err
 	}
 
 	return deviceInventory, nil
+}
+
+// ListDeviceInventory returns a list of device inventories based on provided query.
+func (cli *Client) ListDeviceInventory(ctx context.Context, query InventoryListQuery) (*InventoryListResponse, error) {
+	queryParameters, err := query.String()
+	if err != nil {
+		return nil, fmt.Errorf("failed to encode query: %w", err)
+	}
+
+	requestPath := deviceInventoryPath + "?" + queryParameters
+
+	response := new(InventoryListResponse)
+
+	if err = cli.Call(ctx, http.MethodGet, requestPath, nil, response); err != nil {
+		return nil, err
+	}
+
+	return response, nil
 }
