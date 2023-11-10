@@ -24,6 +24,7 @@ import (
 	"net/url"
 
 	"github.com/qbee-io/qbee-cli/client/config"
+	"github.com/qbee-io/qbee-cli/client/types"
 )
 
 const deviceInventoryPath = "/api/v2/inventory"
@@ -144,8 +145,11 @@ type SystemInfo struct {
 	// RemoteAddress - remote client address from which the inventory was reported (e.g. "1.2.3.4").
 	RemoteAddress string `json:"remoteaddr"`
 
+	// LastPolicyUpdate - latest applied policy update timestamp (e.g. "1668156545")
+	LastPolicyUpdate types.Timestamp `json:"last_policy_update" bson:"last_policy_update"`
+
 	// LastConfigUpdate - unix timestamp of the last config update (e.g. "1586144402").
-	LastConfigUpdate string `json:"last_config_update"`
+	LastConfigUpdate types.Timestamp `json:"last_config_update"`
 
 	// LastConfigCommitID - last applied config commit SHA
 	// (e.g. "6c07b6d021a015329b1815ec954cca6d8c4973c3b574202401dad448e8cdd0f5").
@@ -174,13 +178,13 @@ type DeviceInventory struct {
 	ConfigPropagated bool `json:"config_propagated"`
 
 	// LastReported is the unix timestamp when the device checked-in with the platform.
-	LastReported int `json:"last_reported"`
+	LastReported types.Timestamp `json:"last_reported"`
 
 	// HeartbeatExpirationSoft is the unix timestamp when the device will be marked as delayed.
-	HeartbeatExpirationSoft int `json:"exp_soft"`
+	HeartbeatExpirationSoft types.Timestamp `json:"exp_soft"`
 
 	// HeartbeatExpirationHard is the unix timestamp when the device will be marked as offline.
-	HeartbeatExpirationHard int `json:"exp_hard"`
+	HeartbeatExpirationHard types.Timestamp `json:"exp_hard"`
 
 	// DeviceCommitSHA is the SHA of the commit that is currently running on the device.
 	DeviceCommitSHA string `json:"device_commit_sha"`

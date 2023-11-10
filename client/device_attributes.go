@@ -16,6 +16,8 @@
 
 package client
 
+import "github.com/qbee-io/qbee-cli/client/types"
+
 // DeviceAttributes represents additional device attributes set for the device.
 type DeviceAttributes struct {
 	// DeviceName is the name of the device which is displayed in the UI (if set).
@@ -76,9 +78,9 @@ type DeviceAttributes struct {
 
 	// UpdatedAuto contains Unix timestamp of the last time the device attributes were updated by the platform.
 	// This is a read-only field.
-	UpdatedAuto int64 `json:"updated_auto,omitempty"`
+	UpdatedAuto types.Timestamp `json:"updated_auto,omitempty"`
 
 	// UpdatedUser contains Unix timestamp of the last time the device attributes were updated by a user.
 	// This is a read-only field.
-	UpdatedUser int64 `json:"updated_user,omitempty"`
+	UpdatedUser types.Timestamp `json:"updated_user,omitempty"`
 }
