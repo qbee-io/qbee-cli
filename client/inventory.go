@@ -412,8 +412,8 @@ func (cli *Client) GetDeviceInventory(ctx context.Context, deviceID string) (*De
 	return deviceInventory, nil
 }
 
-// InventoryList returns a list of device inventories based on provided query.
-func (cli *Client) InventoryList(ctx context.Context, query InventoryListQuery) (*InventoryListResponse, error) {
+// ListDeviceInventory returns a list of device inventories based on provided query.
+func (cli *Client) ListDeviceInventory(ctx context.Context, query InventoryListQuery) (*InventoryListResponse, error) {
 	queryParameters, err := query.String()
 	if err != nil {
 		return nil, fmt.Errorf("failed to encode query: %w", err)
