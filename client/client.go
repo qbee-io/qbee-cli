@@ -50,16 +50,31 @@ func (cli *Client) WithHTTPClient(httpClient *http.Client) *Client {
 	return cli
 }
 
+// GetHTTPClient returns the HTTP client used by the client.
+func (cli *Client) GetHTTPClient() *http.Client {
+	return cli.httpClient
+}
+
 // WithBaseURL sets the base URL of the API endpoint.
 func (cli *Client) WithBaseURL(baseURL string) *Client {
 	cli.baseURL = baseURL
 	return cli
 }
 
+// GetBaseURL returns the base URL used by the client.
+func (cli *Client) GetBaseURL() string {
+	return cli.baseURL
+}
+
 // WithAuthToken sets the authentication token for the client.
 func (cli *Client) WithAuthToken(authToken string) *Client {
 	cli.authToken = authToken
 	return cli
+}
+
+// GetAuthToken returns the authentication token used by the client.S
+func (cli *Client) GetAuthToken() string {
+	return cli.authToken
 }
 
 // Request sends an HTTP request to the API and returns the HTTP response.
