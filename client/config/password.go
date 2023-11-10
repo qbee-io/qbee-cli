@@ -16,6 +16,7 @@
 
 package config
 
+// PasswordBundle defines name for the passwords bundle.
 const PasswordBundle Bundle = "password"
 
 // Password bundle sets passwords for existing users.

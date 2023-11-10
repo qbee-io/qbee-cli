@@ -21,8 +21,10 @@ import (
 	"fmt"
 )
 
+// Error is used to decode API error responses.
 type Error map[string]any
 
+// Error implements error interface.
 func (error Error) Error() string {
 	data, err := json.Marshal(error)
 	if err != nil {

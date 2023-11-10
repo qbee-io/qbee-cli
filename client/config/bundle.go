@@ -19,6 +19,7 @@ package config
 // Bundle defines a configuration bundle name.
 type Bundle string
 
+// BundleNames is a list of configuration bundle names and order in which they should be applied.
 type BundleNames []Bundle
 
 // Metadata for a configuration bundle.
