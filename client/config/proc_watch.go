@@ -16,6 +16,7 @@
 
 package config
 
+// ProcessWatchBundle defines name for the process watch bundle.
 const ProcessWatchBundle Bundle = "proc_watch"
 
 // ProcessWatch ensures running process are running (or not).

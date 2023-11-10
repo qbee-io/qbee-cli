@@ -16,6 +16,7 @@
 
 package config
 
+// SoftwareManagementBundle defines name for the software management bundle.
 const SoftwareManagementBundle Bundle = "software_management"
 
 // SoftwareManagement controls software in the system.

@@ -28,6 +28,7 @@ import (
 
 const deviceInventoryPath = "/api/v2/inventory"
 
+// SystemInfo contains system information collected by the agent.
 type SystemInfo struct {
 	// Class - This variable contains the name of the hard-class category for this host,
 	// (i.e. its top level operating system type classification, e.g. "linux").
@@ -271,6 +272,7 @@ type InventoryListSearch struct {
 	CommitSHA string `json:"commit_sha,omitempty"`
 }
 
+// InventoryReportType defines format of the response payload.
 type InventoryReportType string
 
 const (

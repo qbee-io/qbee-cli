@@ -88,6 +88,7 @@ func (token RemoteAccessToken) ProxyURL() (string, error) {
 // RemoteAccessTokenResponse is the response returned by the API when requesting a remote console token.
 type RemoteAccessTokenResponse map[string]RemoteAccessToken
 
+// RemoteAccessTokenRequest is the request sent to the API when requesting a remote console token.
 type RemoteAccessTokenRequest struct {
 	// DeviceID is the PublicKeyDigest of the device for which the token is requested.
 	// Required.
@@ -130,11 +131,12 @@ func (cli *Client) GetRemoteAccessToken(ctx context.Context, req RemoteAccessTok
 	}
 
 	if len(req.Ports) > 0 {
-		if jsonEncodedPorts, err := json.Marshal(req.Ports); err != nil {
+		jsonEncodedPorts, err := json.Marshal(req.Ports)
+		if err != nil {
 			return nil, fmt.Errorf("error encoding ports: %w", err)
-		} else {
-			urlValues.Set("ports", string(jsonEncodedPorts))
 		}
+
+		urlValues.Set("ports", string(jsonEncodedPorts))
 	}
 
 	path := fmt.Sprintf(remoteAccessTokenV2Path, req.DeviceID, urlValues.Encode())

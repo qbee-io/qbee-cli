@@ -16,6 +16,7 @@
 
 package config
 
+// FileDistributionBundle defines name for the file distribution bundle.
 const FileDistributionBundle Bundle = "file_distribution"
 
 // FileDistribution controls files in the system.

@@ -16,6 +16,7 @@
 
 package config
 
+// FirewallBundle defines name for the firewall bundle.
 const FirewallBundle Bundle = "firewall"
 
 // Firewall configures system firewall.

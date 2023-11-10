@@ -1,5 +1,6 @@
 package config
 
+// UsersBundle defines name for the system users management bundle.
 const UsersBundle Bundle = "users"
 
 // Users adds or removes users.

@@ -22,6 +22,7 @@ import (
 	"strings"
 )
 
+// Network protocols supported by the remote access.
 const (
 	TCP = "tcp"
 	UDP = "udp"

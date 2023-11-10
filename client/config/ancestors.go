@@ -44,19 +44,21 @@ func (ancestors Ancestors) MarshalJSON() ([]byte, error) {
 			buf.WriteByte(',')
 		}
 
-		if nodeID, err := json.Marshal(ancestor.NodeID); err != nil {
+		nodeID, err := json.Marshal(ancestor.NodeID)
+		if err != nil {
 			return nil, err
-		} else {
-			buf.Write(nodeID)
 		}
+
+		buf.Write(nodeID)
 
 		buf.WriteByte(':')
 
-		if title, err := json.Marshal(ancestor.Title); err != nil {
+		var title []byte
+		if title, err = json.Marshal(ancestor.Title); err != nil {
 			return nil, err
-		} else {
-			buf.Write(title)
 		}
+
+		buf.Write(title)
 	}
 
 	buf.WriteByte('}')

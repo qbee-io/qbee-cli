@@ -16,6 +16,7 @@
 
 package config
 
+// DockerContainersBundle defines name for the docker containers bundle.
 const DockerContainersBundle Bundle = "docker_containers"
 
 // DockerContainers controls docker containers running in the system.

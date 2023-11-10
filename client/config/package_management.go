@@ -16,6 +16,7 @@
 
 package config
 
+// PackageManagementBundle defines name for the package management bundle.
 const PackageManagementBundle Bundle = "package_management"
 
 // PackageManagement controls system packages.
