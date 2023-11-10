@@ -19,7 +19,7 @@ package config
 // SettingsBundle defines name for the agent settings bundle.
 const SettingsBundle Bundle = "settings"
 
-// Settings
+// Settings defines agent settings.
 //
 // Example payload:
 //

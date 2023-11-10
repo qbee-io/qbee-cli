@@ -50,20 +50,19 @@ type Firewall struct {
 // FirewallTableName defines which firewall table name.
 type FirewallTableName string
 
-const (
-	Filter FirewallTableName = "filter"
-)
+// Filter defines filter table name.
+const Filter FirewallTableName = "filter"
 
 // FirewallChainName defines firewall table's chain name.
 type FirewallChainName string
 
-const (
-	Input FirewallChainName = "INPUT"
-)
+// Input defines INPUT chain name.
+const Input FirewallChainName = "INPUT"
 
 // Protocol defines network protocol in use.
 type Protocol string
 
+// Network protocols supported by the firewall.
 const (
 	TCP  Protocol = "tcp"
 	UDP  Protocol = "udp"
@@ -73,6 +72,7 @@ const (
 // Target defines what to do extender matching packets.
 type Target string
 
+// Targets supported by the firewall.
 const (
 	Accept Target = "ACCEPT"
 	Drop   Target = "DROP"
