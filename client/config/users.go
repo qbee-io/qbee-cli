@@ -1,5 +1,6 @@
 package config
 
+// UsersBundle defines name for the system users management bundle.
 const UsersBundle Bundle = "users"
 
 // Users adds or removes users.
@@ -24,6 +25,7 @@ type Users struct {
 // UserAction defines what to do with a user.
 type UserAction string
 
+// Supported user actions.
 const (
 	UserAdd    UserAction = "add"
 	UserRemove UserAction = "remove"

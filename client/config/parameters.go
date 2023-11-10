@@ -16,6 +16,7 @@
 
 package config
 
+// ParametersBundle defines name for the parameters bundle.
 const ParametersBundle Bundle = "parameters"
 
 // Parameters sets global configuration parameters.

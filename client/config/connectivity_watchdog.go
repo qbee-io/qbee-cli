@@ -16,6 +16,7 @@
 
 package config
 
+// ConnectivityWatchdogBundle defines name for the connectivity watchdog bundle.
 const ConnectivityWatchdogBundle Bundle = "connectivity_watchdog"
 
 // ConnectivityWatchdog when enabled, will count failed connection attempts to the device hub

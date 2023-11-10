@@ -16,6 +16,7 @@
 
 package config
 
+// NTPBundle defines name for the NTP bundle.
 const NTPBundle Bundle = "ntp"
 
 // NTP configures NTP servers.

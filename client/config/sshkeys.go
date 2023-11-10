@@ -16,6 +16,7 @@
 
 package config
 
+// SSHKeysBundle defines name for the SSH keys management bundle.
 const SSHKeysBundle Bundle = "sshkeys"
 
 // SSHKeys adds or removes authorized SSH keys for users.

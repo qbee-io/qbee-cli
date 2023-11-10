@@ -16,6 +16,7 @@
 
 package config
 
+// PackageManagementBundle defines name for the package management bundle.
 const PackageManagementBundle Bundle = "package_management"
 
 // PackageManagement controls system packages.
@@ -53,6 +54,7 @@ type PackageManagement struct {
 // RebootMode defines whether system should be rebooted after package maintenance or not.
 type RebootMode string
 
+// Supported reboot modes.
 const (
 	RebootNever  RebootMode = "never"
 	RebootAlways RebootMode = "always"
