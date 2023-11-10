@@ -72,7 +72,7 @@ func (cli *Client) WithAuthToken(authToken string) *Client {
 	return cli
 }
 
-// GetAuthToken returns the authentication token used by the client.S
+// GetAuthToken returns the authentication token used by the client.
 func (cli *Client) GetAuthToken() string {
 	return cli.authToken
 }
