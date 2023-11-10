@@ -146,7 +146,7 @@ type SystemInfo struct {
 	RemoteAddress string `json:"remoteaddr"`
 
 	// LastPolicyUpdate - latest applied policy update timestamp (e.g. "1668156545")
-	LastPolicyUpdate types.Timestamp `json:"last_policy_update" bson:"last_policy_update"`
+	LastPolicyUpdate types.Timestamp `json:"last_policy_update"`
 
 	// LastConfigUpdate - unix timestamp of the last config update (e.g. "1586144402").
 	LastConfigUpdate types.Timestamp `json:"last_config_update"`
