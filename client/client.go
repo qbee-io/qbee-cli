@@ -62,7 +62,7 @@ func (cli *Client) WithAuthToken(authToken string) *Client {
 	return cli
 }
 
-// Request performs an HTTP request to the API.
+// Request sends an HTTP request to the API and returns the HTTP response.
 func (cli *Client) Request(ctx context.Context, method, path string, src any) (*http.Response, error) {
 	if !strings.HasPrefix(path, "/") {
 		return nil, fmt.Errorf("path %s must start with /", path)
@@ -103,8 +103,10 @@ func (cli *Client) Request(ctx context.Context, method, path string, src any) (*
 	return response, nil
 }
 
-// request sends an HTTP request with optional JSON payload (src) and optionally decodes JSON response to dst.
-func (cli *Client) request(ctx context.Context, method, path string, src, dst any) error {
+// Call the API using provided method and path.
+// If src is not nil, it will be encoded as JSON and sent as the request body.
+// If dst is not nil, the response body will be decoded as JSON into dst
+func (cli *Client) Call(ctx context.Context, method, path string, src, dst any) error {
 	response, err := cli.Request(ctx, method, path, src)
 	if err != nil {
 		return err

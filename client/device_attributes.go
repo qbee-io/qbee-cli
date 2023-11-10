@@ -41,4 +41,44 @@ type DeviceAttributes struct {
 
 	// Longitude is the longitude where device is located.
 	Longitude string `json:"longitude"`
+
+	// DiscoveredCountry is the country where device was discovered by the platform based on its IP address.
+	// This is a read-only field.
+	DiscoveredCountry string `json:"discovered_country,omitempty"`
+
+	// DiscoveredCity is the city where device was discovered by the platform based on its IP address.
+	// This is a read-only field.
+	DiscoveredCity string `json:"discovered_city,omitempty"`
+
+	// DiscoveredZip is the zip code where device was discovered by the platform based on its IP address.
+	// This is a read-only field.
+	DiscoveredZip string `json:"discovered_zip,omitempty"`
+
+	// DiscoveredAddress is the address where device was discovered by the platform based on its IP address.
+	// This is a read-only field.
+	DiscoveredAddress string `json:"discovered_address,omitempty"`
+
+	// DiscoveredLatitude is the latitude where device was discovered by the platform based on its IP address.
+	// This is a read-only field.
+	DiscoveredLatitude string `json:"discovered_latitude,omitempty"`
+
+	// DiscoveredLongitude is the longitude where device was discovered by the platform based on its IP address.
+	// This is a read-only field.
+	DiscoveredLongitude string `json:"discovered_longitude,omitempty"`
+
+	// DiscoveredByPostAddressLatitude is the latitude where device was discovered by the platform based on address.
+	// This is a read-only field.
+	DiscoveredByPostAddressLatitude string `json:"discovered_by_post_address_latitude,omitempty"`
+
+	// DiscoveredByPostAddressLongitude is the longitude where device was discovered by the platform based on address.
+	// This is a read-only field.
+	DiscoveredByPostAddressLongitude string `json:"discovered_by_post_address_longitude,omitempty"`
+
+	// UpdatedAuto contains Unix timestamp of the last time the device attributes were updated by the platform.
+	// This is a read-only field.
+	UpdatedAuto int64 `json:"updated_auto,omitempty"`
+
+	// UpdatedUser contains Unix timestamp of the last time the device attributes were updated by a user.
+	// This is a read-only field.
+	UpdatedUser int64 `json:"updated_user,omitempty"`
 }

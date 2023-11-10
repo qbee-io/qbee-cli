@@ -49,7 +49,7 @@ func (cli *Client) Login(ctx context.Context, email, password string) (string, e
 
 	response := new(LoginResponse)
 
-	if err := cli.request(ctx, http.MethodPost, loginPath, request, &response); err != nil {
+	if err := cli.Call(ctx, http.MethodPost, loginPath, request, &response); err != nil {
 		if apiError := make(Error); errors.As(err, &apiError) {
 			// Two-factor authentication is unsupported, so let's return a meaningful error message.
 			if _, has2FAChallenge := apiError["challenge"].(string); has2FAChallenge {

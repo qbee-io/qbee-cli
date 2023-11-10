@@ -141,7 +141,7 @@ func (cli *Client) GetRemoteAccessToken(ctx context.Context, req RemoteAccessTok
 
 	response := make(RemoteAccessTokenResponse)
 
-	if err := cli.request(ctx, http.MethodGet, path, nil, &response); err != nil {
+	if err := cli.Call(ctx, http.MethodGet, path, nil, &response); err != nil {
 		return nil, err
 	}
 
