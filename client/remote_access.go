@@ -38,7 +38,6 @@ type RemoteAccessTarget struct {
 	RemoteHost string
 
 	// LocalPort is the port on the local machine to which the remote port is forwarded.
-	// If set to 0, a random port will be chosen.
 	LocalPort string
 
 	// RemotePort is the port on the remote machine to which the local port is forwarded.
