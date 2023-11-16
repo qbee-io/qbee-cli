@@ -42,7 +42,7 @@ type RemoteAccessTarget struct {
 	LocalPort string
 
 	// RemotePort is the port on the remote machine to which the local port is forwarded.
-	RemotePort uint16
+	RemotePort string
 }
 
 // IsValidDeviceID checks if the provided device ID is valid.
@@ -77,7 +77,7 @@ func ParseRemoteAccessTarget(targetString string) (RemoteAccessTarget, error) {
 
 	var err error
 
-	if target.LocalPort, err = parseLocalNetworkPort(parts[0]); err != nil {
+	if target.LocalPort, err = parseNetworkPort(parts[0]); err != nil {
 		return target, fmt.Errorf("invalid local port: %w", err)
 	}
 
@@ -97,7 +97,7 @@ func ParseRemoteAccessTarget(targetString string) (RemoteAccessTarget, error) {
 		target.Protocol = TCP
 	}
 
-	if target.RemotePort, err = parseRemoteNetworkPort(remotePort); err != nil {
+	if target.RemotePort, err = parseNetworkPort(remotePort); err != nil {
 		return target, fmt.Errorf("invalid remote port: %w", err)
 	}
 
@@ -106,7 +106,7 @@ func ParseRemoteAccessTarget(targetString string) (RemoteAccessTarget, error) {
 
 // String returns the string representation of a remote access target.
 func (target RemoteAccessTarget) String() string {
-	base := fmt.Sprintf("%s:%s:%d", target.LocalPort, target.RemoteHost, target.RemotePort)
+	base := fmt.Sprintf("%s:%s:%s", target.LocalPort, target.RemoteHost, target.RemotePort)
 
 	if target.Protocol == UDP {
 		return base + "/udp"
@@ -115,10 +115,10 @@ func (target RemoteAccessTarget) String() string {
 	return base
 }
 
-// parseLocalNetworkPort parses a network port string and accepts either a port number or "stdio".
-func parseLocalNetworkPort(portString string) (string, error) {
+// parseNetworkPort parses a network port string and accepts either a port number or "stdio".
+func parseNetworkPort(portString string) (string, error) {
 	if portString == "" {
-		return "0", fmt.Errorf("empty port")
+		return "", fmt.Errorf("empty port")
 	}
 
 	if portString == "stdio" {
@@ -127,22 +127,8 @@ func parseLocalNetworkPort(portString string) (string, error) {
 
 	_, err := strconv.ParseUint(portString, 10, 16)
 	if err != nil {
-		return "0", fmt.Errorf("invalid port number")
+		return "", fmt.Errorf("invalid port number")
 	}
 
 	return portString, nil
-}
-
-// parseRemoteNetworkPort parses a network port string and accepts only port numbers
-func parseRemoteNetworkPort(portString string) (uint16, error) {
-	if portString == "" {
-		return 0, fmt.Errorf("empty port")
-	}
-
-	portUint, err := strconv.ParseUint(portString, 10, 16)
-	if err != nil {
-		return 0, fmt.Errorf("invalid port number")
-	}
-
-	return uint16(portUint), nil
 }

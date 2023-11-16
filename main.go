@@ -25,7 +25,7 @@ import (
 
 func main() {
 	if err := cmd.Main.Execute(os.Args[1:], nil); err != nil {
-		fmt.Printf("Error: %s\n", err)
+		fmt.Fprintf(os.Stderr, "qbee-cli error: %s\n", err)
 		os.Exit(1)
 	}
 }

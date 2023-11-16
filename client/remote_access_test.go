@@ -38,7 +38,7 @@ func TestParseRemoteAccessTarget(t *testing.T) {
 				Protocol:   "tcp",
 				LocalPort:  "1",
 				RemoteHost: "localhost",
-				RemotePort: 2,
+				RemotePort: "2",
 			},
 		},
 		{
@@ -48,7 +48,7 @@ func TestParseRemoteAccessTarget(t *testing.T) {
 				Protocol:   "udp",
 				LocalPort:  "1",
 				RemoteHost: "localhost",
-				RemotePort: 2,
+				RemotePort: "2",
 			},
 		},
 		{
@@ -58,7 +58,7 @@ func TestParseRemoteAccessTarget(t *testing.T) {
 				Protocol:   "tcp",
 				LocalPort:  "stdio",
 				RemoteHost: "localhost",
-				RemotePort: 2,
+				RemotePort: "2",
 			},
 		},
 		{
@@ -68,7 +68,7 @@ func TestParseRemoteAccessTarget(t *testing.T) {
 				Protocol:   "udp",
 				LocalPort:  "stdio",
 				RemoteHost: "localhost",
-				RemotePort: 2,
+				RemotePort: "2",
 			},
 		},
 		{

@@ -162,7 +162,7 @@ func (cli *Client) GetRemoteAccessToken(ctx context.Context, req RemoteAccessTok
 func (cli *Client) Connect(ctx context.Context, deviceID string, targets []RemoteAccessTarget) error {
 	ports := make([]string, len(targets))
 	for _, target := range targets {
-		ports = append(ports, fmt.Sprintf("%s:%d", target.Protocol, target.RemotePort))
+		ports = append(ports, fmt.Sprintf("%s:%s", target.Protocol, target.RemotePort))
 	}
 
 	remoteAccessTokenRequest := RemoteAccessTokenRequest{
