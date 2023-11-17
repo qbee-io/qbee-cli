@@ -76,7 +76,7 @@ func ParseRemoteAccessTarget(targetString string) (RemoteAccessTarget, error) {
 
 	var err error
 
-	if target.LocalPort, err = parseNetworkPort(parts[0]); err != nil {
+	if target.LocalPort, err = parseLocalNetworkPort(parts[0]); err != nil {
 		return target, fmt.Errorf("invalid local port: %w", err)
 	}
 
@@ -114,14 +114,23 @@ func (target RemoteAccessTarget) String() string {
 	return base
 }
 
-// parseNetworkPort parses a network port string and accepts either a port number or "stdio".
+// parseLocalNetworkPort parses a network port string and accepts either a port number or "stdio".
+func parseLocalNetworkPort(portString string) (string, error) {
+	if portString == "stdio" {
+		return portString, nil
+	}
+
+	if _, err := parseNetworkPort(portString); err != nil {
+		return "", err
+	}
+
+	return portString, nil
+}
+
+// parseNetworkPort parses a network port string and accepts a port number.
 func parseNetworkPort(portString string) (string, error) {
 	if portString == "" {
 		return "", fmt.Errorf("empty port")
-	}
-
-	if portString == "stdio" {
-		return portString, nil
 	}
 
 	_, err := strconv.ParseUint(portString, 10, 16)

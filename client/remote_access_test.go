@@ -52,7 +52,7 @@ func TestParseRemoteAccessTarget(t *testing.T) {
 			},
 		},
 		{
-			name:         "valid tcp target",
+			name:         "valid stdio target",
 			targetString: "stdio:localhost:2",
 			want: client.RemoteAccessTarget{
 				Protocol:   "tcp",
@@ -62,7 +62,7 @@ func TestParseRemoteAccessTarget(t *testing.T) {
 			},
 		},
 		{
-			name:         "valid udp target",
+			name:         "valid stdio target",
 			targetString: "stdio:localhost:2/udp",
 			want: client.RemoteAccessTarget{
 				Protocol:   "udp",
