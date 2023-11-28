@@ -45,6 +45,8 @@ jobs:
         goreleaser release --snapshot --clean
         pwd && ls -ltr dist
 
+        codesign -vvvv -R="notarized" --check-notarization ./dist/qbee-cli.dmg
+
     # - name: Zip up release directory
     #   run: |
     #     zip -r release-binaries.zip release/
