@@ -34,6 +34,7 @@ jobs:
         AC_APPLICATION_IDENTITY: ${{ secrets.AC_APPLICATION_IDENTITY }}
       run: |
         goreleaser release --snapshot  --clean
+        echo "testing"
 
     # - name: Zip up release directory
     #   run: |
