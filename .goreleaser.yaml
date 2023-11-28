@@ -82,5 +82,7 @@ signs:
       - qbee-cli-macos
     cmd: gon
     args:
-      - -log-level DEBUG .gon.hcl
+      - -log-level
+      - DEBUG 
+      - .gon.hcl
     artifacts: all
