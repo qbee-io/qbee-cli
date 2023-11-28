@@ -1,11 +1,6 @@
 source = ["./dist/qbee-cli-macos_darwin_amd64_v1/qbee-cli"]
 bundle_id = "io.qbee.qbee-cli"
 
-apple_id {
-  username = "$AC_USERNAME"
-  password = "$AC_PASSWORD"
-}
-
 sign {
   application_identity = "$AC_APPLICATION_IDENTITY"
 }

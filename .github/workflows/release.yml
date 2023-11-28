@@ -32,18 +32,17 @@ jobs:
     
     - name: Install gon via HomeBrew for code signing and app notarization
       run: |
-        brew tap mitchellh/gon
-        brew install mitchellh/gon/gon
+        brew install Bearer/homebrew-tap/gon
        
     - name: Sign the mac binaries with Gon
       env:
         AC_USERNAME: ${{ secrets.AC_USERNAME }}
         AC_PASSWORD: ${{ secrets.AC_PASSWORD }}
+        AC_PROVIDER: ${{ secrets.AC_PROVIDER }}
         AC_APPLICATION_IDENTITY: ${{ secrets.AC_APPLICATION_IDENTITY }}
       run: |
         envsubst < .gon.hcl.template > .gon.hcl
         goreleaser release --snapshot --clean
-        gon -log-level DEBUG .gon.hcl
 
     # - name: Zip up release directory
     #   run: |
