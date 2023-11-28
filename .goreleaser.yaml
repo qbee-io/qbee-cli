@@ -79,8 +79,8 @@ changelog:
 signs:
   - signature: "${artifact}.dmg"
     ids:
-    - qbee-cli-macos
+      - qbee-cli-macos
     cmd: gon
     args:
-    - .gon.hcl
+      - .gon.hcl
     artifacts: all

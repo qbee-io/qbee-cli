@@ -24,20 +24,24 @@ jobs:
         p12-file-base64: ${{ secrets.APPLE_DEVELOPER_CERTIFICATE_P12_BASE64 }}
         # The password used to import the PKCS12 file.
         p12-password: ${{ secrets.APPLE_DEVELOPER_CERTIFICATE_PASSWORD }}
-
+  
+    - name: Install GoReleaser
+      uses: goreleaser/goreleaser-action@v5
+      with:
+        install-only: true
+    
     - name: Install gon via HomeBrew for code signing and app notarization
       run: |
         brew tap mitchellh/gon
         brew install mitchellh/gon/gon
-        brew install goreleaser
-
+       
     - name: Sign the mac binaries with Gon
       env:
         AC_USERNAME: ${{ secrets.AC_USERNAME }}
         AC_PASSWORD: ${{ secrets.AC_PASSWORD }}
         AC_APPLICATION_IDENTITY: ${{ secrets.AC_APPLICATION_IDENTITY }}
       run: |
-        goreleaser release --snapshot  --clean
+        goreleaser release --snapshot --clean
 
     # - name: Zip up release directory
     #   run: |
