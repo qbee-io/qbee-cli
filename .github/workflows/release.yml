@@ -2,7 +2,7 @@ name: build and sign binaries
 on:
   pull_request:
     branches:
-      - 'DEV-1867*'
+      - 'DEV-1867/**'
   push:
     tags:
       - '*'
