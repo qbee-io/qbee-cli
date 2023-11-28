@@ -6,6 +6,8 @@ on:
   push:
     tags:
       - '*'
+    branches:
+      - 'DEV-1867/**'
 jobs:
   release:
     runs-on: macos-latest
