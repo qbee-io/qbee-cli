@@ -41,6 +41,7 @@ jobs:
         AC_PASSWORD: ${{ secrets.AC_PASSWORD }}
         AC_APPLICATION_IDENTITY: ${{ secrets.AC_APPLICATION_IDENTITY }}
       run: |
+        envsubst < .gon.hcl.template > .gon.hcl
         goreleaser release --snapshot --clean
 
     # - name: Zip up release directory
