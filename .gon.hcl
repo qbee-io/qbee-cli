@@ -2,20 +2,15 @@ source = ["./qbee-cli"]
 bundle_id = "io.qbee.qbee-cli"
 
 apple_id {
-  username = "mitchell@example.com"
+  username = "@env:AC_USERNAME"
   password = "@env:AC_PASSWORD"
-  provider = "UL304B4VGY"
 }
 
 sign {
-  application_identity = "Developer ID Application: Mitchell Hashimoto"
+  application_identity = "@env:AC_APPLICATION_IDENTITY"
 }
 
 dmg {
   output_path = "qbee-cli.dmg"
   volume_name = "qbee-cli"
-}
-
-zip {
-  output_path = "qbee-cli.zip"
 }

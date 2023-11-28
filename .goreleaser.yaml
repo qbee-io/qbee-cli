@@ -12,17 +12,18 @@ before:
   hooks:
     # You may remove this if you don't use go modules.
     - go mod tidy
-    # you may remove this if you don't need go generate
-    - go generate ./...
 
 builds:
   - env:
       - CGO_ENABLED=0
     binary: qbee-cli
-    id: qbee-cli
+    id: qbee-cli-linux
+    ldflags:
+      - -s -w
+    flags:
+      - -trimpath
     goos:
       - linux
-      - windows
     goarch:
       - amd64
       - arm64
@@ -30,7 +31,23 @@ builds:
   - env:
       - CGO_ENABLED=0
     binary: qbee-cli
+    id: qbee-cli-windows
+    ldflags:
+      - -s -w
+    flags:
+      - -trimpath
+    goos:
+      - windows
+    goarch:
+      - amd64
+  - env:
+      - CGO_ENABLED=0
+    binary: qbee-cli
     id: qbee-cli-macos
+    ldflags:
+      - -s -w
+    flags:
+      - -trimpath
     goos:
       - darwin
     goarch:
