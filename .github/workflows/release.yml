@@ -43,6 +43,7 @@ jobs:
       run: |
         envsubst < .gon.hcl.template > .gon.hcl
         goreleaser release --snapshot --clean
+        pwd && ls -ltr dist
 
     # - name: Zip up release directory
     #   run: |

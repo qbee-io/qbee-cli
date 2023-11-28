@@ -77,12 +77,10 @@ changelog:
       - "^test:"
 
 signs:
-  - signature: "${artifact}.dmg"
-    ids:
+  - ids:
       - qbee-cli-macos
     cmd: gon
     args:
       - -log-level
       - DEBUG 
       - .gon.hcl
-    artifacts: all
