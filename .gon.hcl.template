@@ -1,4 +1,4 @@
-source = ["./dist/qbee-cli"]
+source = ["./dist/qbee-cli-macos-universal_darwin_all/qbee-cli"]
 bundle_id = "io.qbee.qbee-cli"
 
 sign {
