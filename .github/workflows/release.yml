@@ -32,7 +32,7 @@ jobs:
     
     - name: Install gon via HomeBrew for code signing and app notarization
       run: |
-        brew install Bearer/homebrew-tap/gon
+        brew install bearer/tap/gon
        
     - name: Sign the mac binaries with Gon
       env:
@@ -43,7 +43,7 @@ jobs:
       run: |
         envsubst < .gon.hcl.template > .gon.hcl
         goreleaser release --snapshot --clean
-        pwd && ls -ltr dist
+        pwd && ls -ltr dist && ls -ltr release
 
         codesign -vvvv -R="notarized" --check-notarization ./dist/qbee-cli.dmg
 

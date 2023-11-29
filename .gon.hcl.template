@@ -9,3 +9,7 @@ dmg {
   output_path = "./dist/qbee-cli.dmg"
   volume_name = "qbee-cli"
 }
+
+zip {
+  output_path = "./dist/qbee-cli.zip"
+}
