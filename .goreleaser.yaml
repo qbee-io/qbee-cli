@@ -76,12 +76,16 @@ changelog:
       - "^docs:"
       - "^test:"
 
+universal_binaries:
+  - id: qbee-cli-macos-universal
+    ids:
+      - qbee-cli-macos
+    replace: true
+
 signs:
   - ids:
-      - qbee-cli-macos
+      - qbee-cli-macos-universal
     cmd: gon
     args:
-      - -log-level
-      - DEBUG 
       - .gon.hcl
     artifacts: all
