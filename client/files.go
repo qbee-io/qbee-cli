@@ -24,30 +24,31 @@ func (cli *Client) UploadFile(ctx context.Context, path, name string, reader io.
 	partHeaders.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, name))
 	partHeaders.Set("Content-Type", "")
 
-	if part, err := multipartWriter.CreatePart(partHeaders); err != nil {
+	part, err := multipartWriter.CreatePart(partHeaders)
+	if err != nil {
 		return err
-	} else {
-		if _, err = io.Copy(part, reader); err != nil {
-			return err
-		}
 	}
 
-	if part, err := multipartWriter.CreateFormField("path"); err != nil {
+	if _, err = io.Copy(part, reader); err != nil {
 		return err
-	} else {
-		if _, err = part.Write([]byte(path)); err != nil {
-			return err
-		}
 	}
 
-	if err := multipartWriter.Close(); err != nil {
+	if part, err = multipartWriter.CreateFormField("path"); err != nil {
+		return err
+	}
+
+	if _, err = part.Write([]byte(path)); err != nil {
+		return err
+	}
+
+	if err = multipartWriter.Close(); err != nil {
 		return err
 	}
 
 	requestURL := cli.baseURL + filePath
 
-	request, err := http.NewRequestWithContext(ctx, http.MethodPost, requestURL, buf)
-	if err != nil {
+	var request *http.Request
+	if request, err = http.NewRequestWithContext(ctx, http.MethodPost, requestURL, buf); err != nil {
 		return err
 	}
 
@@ -176,6 +177,7 @@ func (cli *Client) CreateDirectory(ctx context.Context, path, name string) error
 	return cli.Call(ctx, http.MethodPost, fileCreateDirPath, req, nil)
 }
 
+// File represents a file in the file-manager.
 type File struct {
 	Name      string `json:"name"`
 	Extension string `json:"extension"`
@@ -204,7 +206,10 @@ type ListSearch struct {
 }
 
 const (
-	SortDirectionAsc  = "asc"
+	// SortDirectionAsc returns the files sorted in ascending order.
+	SortDirectionAsc = "asc"
+
+	// SortDirectionDesc returns the files sorted in descending order.
 	SortDirectionDesc = "desc"
 )
 
@@ -292,8 +297,6 @@ func (cli *Client) ListFiles(ctx context.Context, query ListQuery) (*FilesListRe
 }
 
 const fileStatsPath = "/api/v2/file/stats"
-
-const Megabyte = 1024 * 1024
 
 // Stats represents the statistics of file manager for a company.
 type Stats struct {
