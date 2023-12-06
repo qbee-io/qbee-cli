@@ -266,6 +266,9 @@ type InventoryListSearch struct {
 	// using OR condition and substring match
 	DeviceAttribute string `json:"device_attribute,omitempty"`
 
+	// Unassigned defines if only unassigned devices should be returned.
+	Unassigned bool `json:"unassigned,omitempty"`
+
 	// Ancestors - array of parent nodes (exact match)
 	Ancestors []string `json:"ancestor_ids,omitempty"`
 
