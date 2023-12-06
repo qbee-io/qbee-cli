@@ -19,7 +19,6 @@ package cmd
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/qbee-io/qbee-cli/client"
@@ -47,9 +46,6 @@ var connectCommand = Command{
 		},
 	},
 	Target: func(opts Options) error {
-		email := os.Getenv("QBEE_EMAIL")
-		password := os.Getenv("QBEE_PASSWORD")
-
 		ctx := context.Background()
 
 		deviceID := opts[connectDeviceOption]
@@ -67,12 +63,8 @@ var connectCommand = Command{
 			targets = append(targets, target)
 		}
 
-		cli := client.New()
-		if baseURL, ok := os.LookupEnv("QBEE_BASEURL"); ok {
-			cli = cli.WithBaseURL(baseURL)
-		}
-
-		if err := cli.Authenticate(ctx, email, password); err != nil {
+		cli, err := GetAuthenticatedClient(ctx)
+		if err != nil {
 			return err
 		}
 
