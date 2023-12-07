@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -26,25 +27,60 @@ import (
 )
 
 const (
-	connectDeviceOption = "device"
-	connectTargetOption = "target"
+	connectDeviceOption     = "device"
+	connectTargetOption     = "target"
+	connectConfigFileOption = "config"
 )
+
+var RemoteAccessTargets = make([]client.RemoteAccessConnection, 0)
 
 var connectCommand = Command{
 	Description: "Connect to a device",
 	Options: []Option{
 		{
-			Name:     connectDeviceOption,
-			Short:    "d",
-			Help:     "Device ID (as Public Key Digest)",
-			Required: true,
+			Name:  connectDeviceOption,
+			Short: "d",
+			Help:  "Device ID (as Public Key Digest)",
 		},
 		{
-			Name:     connectTargetOption,
-			Short:    "t",
-			Help:     "Comma-separated targets definition <localPort>:<remoteHost>:<remotePort>[/udp]",
-			Required: true,
+			Name:  connectTargetOption,
+			Short: "t",
+			Help:  "Comma-separated targets definition <localPort>:<remoteHost>:<remotePort>[/udp]",
 		},
+		{
+			Name:  connectConfigFileOption,
+			Short: "c",
+			Help:  "Config file to use",
+		},
+	},
+	OptionsHandler: func(opts Options) error {
+		if opts[connectConfigFileOption] != "" {
+			configBytes, err := os.ReadFile(opts[connectConfigFileOption])
+			if err != nil {
+				return fmt.Errorf("error reading config file: %w", err)
+			}
+
+			err = json.Unmarshal(configBytes, &RemoteAccessTargets)
+			if err != nil {
+				return fmt.Errorf("error parsing config file: %w", err)
+			}
+
+			if len(RemoteAccessTargets) == 0 {
+				return fmt.Errorf("no connections defined in config file")
+			}
+			return nil
+		}
+		if opts[connectDeviceOption] == "" {
+			return fmt.Errorf("missing device ID")
+		}
+		if opts[connectTargetOption] == "" {
+			return fmt.Errorf("missing target")
+		}
+		RemoteAccessTargets = append(RemoteAccessTargets, client.RemoteAccessConnection{
+			DeviceID: opts[connectDeviceOption],
+			Targets:  strings.Split(opts[connectTargetOption], ","),
+		})
+		return nil
 	},
 	Target: func(opts Options) error {
 		email := os.Getenv("QBEE_EMAIL")
@@ -52,19 +88,24 @@ var connectCommand = Command{
 
 		ctx := context.Background()
 
-		deviceID := opts[connectDeviceOption]
-		if !client.IsValidDeviceID(deviceID) {
-			return fmt.Errorf("invalid device ID %s", deviceID)
-		}
+		remoteAccessMap := make(map[string][]client.RemoteAccessTarget, 0)
 
-		targets := make([]client.RemoteAccessTarget, 0)
-		for _, targetString := range strings.Split(opts[connectTargetOption], ",") {
-			target, err := client.ParseRemoteAccessTarget(targetString)
-			if err != nil {
-				return fmt.Errorf("error parsing target %s: %w", targetString, err)
+		for _, target := range RemoteAccessTargets {
+			if !client.IsValidDeviceID(target.DeviceID) {
+				return fmt.Errorf("invalid device ID %s", target.DeviceID)
 			}
 
-			targets = append(targets, target)
+			targets := make([]client.RemoteAccessTarget, 0)
+			for _, targetString := range target.Targets {
+				target, err := client.ParseRemoteAccessTarget(targetString)
+				if err != nil {
+					return fmt.Errorf("error parsing target %s: %w", targetString, err)
+				}
+
+				targets = append(targets, target)
+			}
+
+			remoteAccessMap[target.DeviceID] = targets
 		}
 
 		cli := client.New()
@@ -75,7 +116,6 @@ var connectCommand = Command{
 		if err := cli.Authenticate(ctx, email, password); err != nil {
 			return err
 		}
-
-		return cli.Connect(ctx, deviceID, targets)
+		return cli.Connect(ctx, remoteAccessMap)
 	},
 }
