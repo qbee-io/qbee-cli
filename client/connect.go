@@ -26,6 +26,7 @@ import (
 
 	chisel "github.com/jpillora/chisel/client"
 	"golang.org/x/net/http/httpproxy"
+	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -158,8 +159,28 @@ func (cli *Client) GetRemoteAccessToken(ctx context.Context, req RemoteAccessTok
 	return &remoteAccessToken, nil
 }
 
+// Connect establishes a connection to a remote devices
+func (cli *Client) Connect(ctx context.Context, connections map[string][]RemoteAccessTarget) error {
+	eg, ctx := errgroup.WithContext(ctx)
+
+	for deviceID, targets := range connections {
+		deviceID := deviceID
+		targets := targets
+
+		eg.Go(func() error {
+			// only print on errors, allow other connection attempts to continue
+			if err := cli.ConnectOne(ctx, deviceID, targets); err != nil {
+				fmt.Printf("error connecting to device %s: %v\n", deviceID, err)
+			}
+			return nil
+		})
+	}
+
+	return eg.Wait()
+}
+
 // Connect establishes a connection to a remote device.
-func (cli *Client) Connect(ctx context.Context, deviceID string, targets []RemoteAccessTarget) error {
+func (cli *Client) ConnectOne(ctx context.Context, deviceID string, targets []RemoteAccessTarget) error {
 	ports := make([]string, len(targets))
 	for _, target := range targets {
 		ports = append(ports, fmt.Sprintf("%s:%s", target.Protocol, target.RemotePort))
@@ -209,6 +230,7 @@ func (cli *Client) Connect(ctx context.Context, deviceID string, targets []Remot
 		return fmt.Errorf("error initializing remote access client: %w", err)
 	}
 
+	chiselClient.Logger.Info = false
 	if err = chiselClient.Start(ctx); err != nil {
 		return err
 	}
