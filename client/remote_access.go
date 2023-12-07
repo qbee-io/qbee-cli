@@ -28,20 +28,29 @@ const (
 	UDP = "udp"
 )
 
+// RemoteAccessConnection defines a remote access connection.
+type RemoteAccessConnection struct {
+	// DeviceID is the device ID of the device to which the remote access connection belongs.
+	DeviceID string `json:"device_id"`
+
+	// Targets is a list of remote access targets.
+	Targets []string `json:"targets"`
+}
+
 // RemoteAccessTarget defines
 type RemoteAccessTarget struct {
 	// Protocol is the protocol used for the remote access.
 	// Can be either "tcp" or "udp".
-	Protocol string
+	Protocol string `json:"protocol"`
 
 	// RemoteHost is the host of the remote machine to which the local port is forwarded.
-	RemoteHost string
+	RemoteHost string `json:"remote_host"`
 
 	// LocalPort is the port on the local machine to which the remote port is forwarded.
-	LocalPort string
+	LocalPort string `json:"local_port"`
 
 	// RemotePort is the port on the remote machine to which the local port is forwarded.
-	RemotePort string
+	RemotePort string `json:"remote_port"`
 }
 
 // IsValidDeviceID checks if the provided device ID is valid.
