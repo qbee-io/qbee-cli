@@ -32,6 +32,25 @@ const (
 	connectConfigFileOption = "config"
 )
 
+// Example config file:
+// [
+//   {
+//     "device_id": "2c40ccd4f8587e3e98d66e9092db4e8b0827906cb79c764b77cb2090b9acb7c8",
+//     "targets": [
+//       "5050:localhost:22",
+//       "5151:localhost:80"
+//     ]
+//   },
+//   {
+//     "device_id": "09790f5388e3180793192fa6952e4c13c25bee650ddbf707d2764ac349d54046",
+//     "targets": [
+//       "8080:localhost:22",
+//       "8081:localhost:80"
+//     ]
+//   }
+// ]
+
+// RemoteAccessTargets is a list of remote access targets.
 var RemoteAccessTargets = make([]client.RemoteAccessConnection, 0)
 
 var connectCommand = Command{
