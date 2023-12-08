@@ -22,11 +22,11 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 
 	chisel "github.com/jpillora/chisel/client"
 	"golang.org/x/net/http/httpproxy"
-	"golang.org/x/sync/errgroup"
 )
 
 const (
@@ -159,28 +159,46 @@ func (cli *Client) GetRemoteAccessToken(ctx context.Context, req RemoteAccessTok
 	return &remoteAccessToken, nil
 }
 
-// Connect establishes a connection to a remote devices
-func (cli *Client) Connect(ctx context.Context, connections map[string][]RemoteAccessTarget) error {
-	eg, ctx := errgroup.WithContext(ctx)
+// ConnectMulti establishes a connection to a remote devices
+func (cli *Client) ConnectMulti(ctx context.Context, connections []RemoteAccessConnection) error {
+	wg := sync.WaitGroup{}
 
-	for deviceID, targets := range connections {
-		deviceID := deviceID
-		targets := targets
+	for _, conn := range connections {
+		wg.Add(1)
 
-		eg.Go(func() error {
-			// only print on errors, allow other connection attempts to continue
-			if err := cli.ConnectOne(ctx, deviceID, targets); err != nil {
-				fmt.Printf("error connecting to device %s: %v\n", deviceID, err)
+		go func(connection RemoteAccessConnection) {
+			defer wg.Done()
+			targets := make([]RemoteAccessTarget, 0)
+			for _, targetString := range connection.Targets {
+				target, err := ParseRemoteAccessTarget(targetString)
+				if err != nil {
+					fmt.Printf("error parsing target: %v", err)
+					continue
+				}
+				targets = append(targets, target)
 			}
-			return nil
-		})
-	}
 
-	return eg.Wait()
+			if len(targets) == 0 {
+				fmt.Printf("no targets defined for device %s\n", connection.DeviceID)
+				return
+			}
+
+			if !IsValidDeviceID(connection.DeviceID) {
+				fmt.Printf("invalid device ID %s\n", connection.DeviceID)
+				return
+			}
+			if err := cli.Connect(ctx, connection.DeviceID, targets); err != nil {
+				fmt.Printf("error connecting to device %s: %v\n", connection.DeviceID, err)
+				return
+			}
+		}(conn)
+	}
+	wg.Wait()
+	return nil
 }
 
 // Connect establishes a connection to a remote device.
-func (cli *Client) ConnectOne(ctx context.Context, deviceID string, targets []RemoteAccessTarget) error {
+func (cli *Client) Connect(ctx context.Context, deviceID string, targets []RemoteAccessTarget) error {
 	ports := make([]string, len(targets))
 	for _, target := range targets {
 		ports = append(ports, fmt.Sprintf("%s:%s", target.Protocol, target.RemotePort))
