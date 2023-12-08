@@ -41,16 +41,16 @@ type RemoteAccessConnection struct {
 type RemoteAccessTarget struct {
 	// Protocol is the protocol used for the remote access.
 	// Can be either "tcp" or "udp".
-	Protocol string `json:"protocol"`
+	Protocol string
 
 	// RemoteHost is the host of the remote machine to which the local port is forwarded.
-	RemoteHost string `json:"remote_host"`
+	RemoteHost string
 
 	// LocalPort is the port on the local machine to which the remote port is forwarded.
-	LocalPort string `json:"local_port"`
+	LocalPort string
 
 	// RemotePort is the port on the remote machine to which the local port is forwarded.
-	RemotePort string `json:"remote_port"`
+	RemotePort string
 }
 
 // IsValidDeviceID checks if the provided device ID is valid.
