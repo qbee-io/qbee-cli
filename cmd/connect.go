@@ -73,12 +73,15 @@ var connectCommand = Command{
 		if opts[connectConfigFileOption] != "" {
 			return nil
 		}
+
 		if opts[connectDeviceOption] == "" {
 			return fmt.Errorf("missing device ID")
 		}
+
 		if opts[connectTargetOption] == "" {
 			return fmt.Errorf("missing target")
 		}
+
 		return nil
 	},
 	Target: func(opts Options) error {
