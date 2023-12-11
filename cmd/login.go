@@ -49,12 +49,12 @@ var loginCommand = Command{
 			return err
 		}
 
-		config := Config{
+		loginConfig := client.LoginConfig{
 			AuthToken: cli.GetAuthToken(),
 			BaseURL:   cli.GetBaseURL(),
 		}
 
-		if err := WriteConfig(config); err != nil {
+		if err := client.LoginWriteConfig(loginConfig); err != nil {
 			return err
 		}
 
