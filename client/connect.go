@@ -22,6 +22,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"sync"
 	"time"
 
 	chisel "github.com/jpillora/chisel/client"
@@ -158,6 +159,67 @@ func (cli *Client) GetRemoteAccessToken(ctx context.Context, req RemoteAccessTok
 	return &remoteAccessToken, nil
 }
 
+// ConnectMulti establishes connections to multiple remote devices concurrently.
+func (cli *Client) ConnectMulti(ctx context.Context, connections []RemoteAccessConnection, allowFailures bool) error {
+	wg := sync.WaitGroup{}
+	errChan := make(chan error)
+	done := make(chan bool)
+
+	for _, conn := range connections {
+		wg.Add(1)
+
+		go func(connection RemoteAccessConnection) {
+			defer wg.Done()
+
+			if err := cli.ParseConnect(ctx, connection.DeviceID, connection.Targets); err != nil {
+				errChan <- fmt.Errorf("error connecting to device %s: %w", connection.DeviceID, err)
+			}
+		}(conn)
+	}
+
+	go func(wg *sync.WaitGroup) {
+		wg.Wait()
+		done <- true
+	}(&wg)
+
+	for {
+		select {
+		case <-done:
+			return nil
+		case err := <-errChan:
+			if !allowFailures {
+				return err
+			}
+			fmt.Printf("%s\n", err)
+		}
+	}
+}
+
+// ParseConnect parses a device ID and a list of targets and establishes a connection to the device.
+func (cli *Client) ParseConnect(ctx context.Context, deviceID string, targets []string) error {
+
+	if !IsValidDeviceID(deviceID) {
+		return fmt.Errorf("invalid device ID %s", deviceID)
+	}
+
+	parsedTargets := make([]RemoteAccessTarget, 0)
+
+	for _, targetString := range targets {
+		target, err := ParseRemoteAccessTarget(targetString)
+		if err != nil {
+			return fmt.Errorf("error parsing target %s: %w", targetString, err)
+		}
+
+		parsedTargets = append(parsedTargets, target)
+	}
+
+	if len(parsedTargets) == 0 {
+		return fmt.Errorf("no targets defined for device %s", deviceID)
+	}
+
+	return cli.Connect(ctx, deviceID, parsedTargets)
+}
+
 // Connect establishes a connection to a remote device.
 func (cli *Client) Connect(ctx context.Context, deviceID string, targets []RemoteAccessTarget) error {
 	ports := make([]string, len(targets))
@@ -209,6 +271,7 @@ func (cli *Client) Connect(ctx context.Context, deviceID string, targets []Remot
 		return fmt.Errorf("error initializing remote access client: %w", err)
 	}
 
+	chiselClient.Logger.Info = false
 	if err = chiselClient.Start(ctx); err != nil {
 		return err
 	}

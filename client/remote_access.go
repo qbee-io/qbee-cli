@@ -28,6 +28,15 @@ const (
 	UDP = "udp"
 )
 
+// RemoteAccessConnection defines a remote access connection.
+type RemoteAccessConnection struct {
+	// DeviceID is the device ID of the device to which the remote access connection belongs.
+	DeviceID string `json:"device_id"`
+
+	// Targets is a list of remote access targets.
+	Targets []string `json:"targets"`
+}
+
 // RemoteAccessTarget defines
 type RemoteAccessTarget struct {
 	// Protocol is the protocol used for the remote access.

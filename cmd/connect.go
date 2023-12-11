@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -26,46 +27,74 @@ import (
 )
 
 const (
-	connectDeviceOption = "device"
-	connectTargetOption = "target"
+	connectDeviceOption     = "device"
+	connectTargetOption     = "target"
+	connectConfigFileOption = "config"
+	connectAllowFailures    = "allow-failures"
 )
+
+// Example config file:
+// [
+//   {
+//     "device_id": "2c40ccd4f8587e3e98d66e9092db4e8b0827906cb79c764b77cb2090b9acb7c8",
+//     "targets": [
+//       "5050:localhost:22",
+//       "5151:localhost:80"
+//     ]
+//   },
+//   {
+//     "device_id": "09790f5388e3180793192fa6952e4c13c25bee650ddbf707d2764ac349d54046",
+//     "targets": [
+//       "8080:localhost:22",
+//       "8081:localhost:80"
+//     ]
+//   }
+// ]
 
 var connectCommand = Command{
 	Description: "Connect to a device",
 	Options: []Option{
 		{
-			Name:     connectDeviceOption,
-			Short:    "d",
-			Help:     "Device ID (as Public Key Digest)",
-			Required: true,
+			Name:  connectDeviceOption,
+			Short: "d",
+			Help:  "Device ID (as Public Key Digest)",
 		},
 		{
-			Name:     connectTargetOption,
-			Short:    "t",
-			Help:     "Comma-separated targets definition <localPort>:<remoteHost>:<remotePort>[/udp]",
-			Required: true,
+			Name:  connectTargetOption,
+			Short: "t",
+			Help:  "Comma-separated targets definition <localPort>:<remoteHost>:<remotePort>[/udp]",
 		},
+		{
+			Name:  connectConfigFileOption,
+			Short: "c",
+			Help:  "Config file to use",
+		},
+		{
+			Name: connectAllowFailures,
+			Help: "Allow one or more failures",
+			Flag: "true",
+		},
+	},
+	OptionsHandler: func(opts Options) error {
+		if opts[connectConfigFileOption] != "" {
+			return nil
+		}
+
+		if opts[connectDeviceOption] == "" {
+			return fmt.Errorf("missing device ID")
+		}
+
+		if opts[connectTargetOption] == "" {
+			return fmt.Errorf("missing target")
+		}
+
+		return nil
 	},
 	Target: func(opts Options) error {
 		email := os.Getenv("QBEE_EMAIL")
 		password := os.Getenv("QBEE_PASSWORD")
 
 		ctx := context.Background()
-
-		deviceID := opts[connectDeviceOption]
-		if !client.IsValidDeviceID(deviceID) {
-			return fmt.Errorf("invalid device ID %s", deviceID)
-		}
-
-		targets := make([]client.RemoteAccessTarget, 0)
-		for _, targetString := range strings.Split(opts[connectTargetOption], ",") {
-			target, err := client.ParseRemoteAccessTarget(targetString)
-			if err != nil {
-				return fmt.Errorf("error parsing target %s: %w", targetString, err)
-			}
-
-			targets = append(targets, target)
-		}
 
 		cli := client.New()
 		if baseURL, ok := os.LookupEnv("QBEE_BASEURL"); ok {
@@ -76,6 +105,25 @@ var connectCommand = Command{
 			return err
 		}
 
-		return cli.Connect(ctx, deviceID, targets)
+		if opts[connectConfigFileOption] != "" {
+			remoteAccessTargets := make([]client.RemoteAccessConnection, 0)
+			configBytes, err := os.ReadFile(opts[connectConfigFileOption])
+			if err != nil {
+				return fmt.Errorf("error reading config file: %w", err)
+			}
+
+			if err := json.Unmarshal(configBytes, &remoteAccessTargets); err != nil {
+				return fmt.Errorf("error parsing config file: %w", err)
+			}
+
+			if len(remoteAccessTargets) == 0 {
+				return fmt.Errorf("no connections defined in config file")
+			}
+			return cli.ConnectMulti(ctx, remoteAccessTargets, opts[connectAllowFailures] == "true")
+		}
+
+		return cli.ParseConnect(ctx,
+			opts[connectDeviceOption],
+			strings.Split(opts[connectTargetOption], ","))
 	},
 }
