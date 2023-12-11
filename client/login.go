@@ -26,6 +26,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strconv"
 	"time"
 )
 
@@ -43,8 +44,7 @@ type LoginRequest struct {
 // LoginResponse is the response body for the Login API.
 type LoginResponse struct {
 	// Token is the authentication token to be used as Bearer token in the Authorization header.
-	Token     string `json:"token"`
-	Challenge string `json:"challenge"`
+	Token string `json:"token"`
 }
 
 type LoginConfig struct {
@@ -141,7 +141,10 @@ func (cli *Client) Login(ctx context.Context, email, password string) (string, e
 	response := new(LoginResponse)
 
 	if err := cli.Call(ctx, http.MethodPost, loginPath, request, &response); err != nil {
+
+		// If the error is an API error, check if it's a 2FA challenge.
 		if apiError := make(Error); errors.As(err, &apiError) {
+
 			if challenge, has2FAChallenge := apiError["challenge"].(string); has2FAChallenge {
 				return cli.Login2FA(ctx, challenge)
 			}
@@ -155,19 +158,29 @@ func (cli *Client) Login(ctx context.Context, email, password string) (string, e
 type Login2FARequest struct {
 	Challenge string `json:"challenge"`
 	Provider  string `json:"preferProvider"`
-}
-
-type Login2FAVerifyRequest struct {
-	Challenge string `json:"challenge"`
 	Code      string `json:"code"`
 }
+
+type Login2FAResponse struct {
+	Challenge string `json:"challenge"`
+	Token     string `json:"token"`
+}
+
+var validProviders = []string{"google", "email"}
 
 const login2FAChallengeGetPath = "/api/v2/challenge-get"
 const login2FAChallengeVerifyPath = "/api/v2/challenge-verify"
 
 // Login2FA returns a new authenticated API Client.
 func (cli *Client) Login2FA(ctx context.Context, challenge string) (string, error) {
-	fmt.Printf("Enter provider (1 Google authenticator, 2 Email): ")
+
+	fmt.Printf("Select 2FA provider:\n")
+
+	for i, provider := range validProviders {
+		fmt.Printf("%d) %s\n", i+1, provider)
+	}
+
+	fmt.Printf("Choice: ")
 
 	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
@@ -176,23 +189,30 @@ func (cli *Client) Login2FA(ctx context.Context, challenge string) (string, erro
 		log.Fatal(err)
 	}
 
-	provider := "google"
+	providerIndex := scanner.Text()
+
+	index, err := strconv.Atoi(providerIndex)
+	if err != nil {
+		return "", err
+	}
+
+	if index < 1 || index > len(validProviders) {
+		return "", fmt.Errorf("invalid provider")
+	}
+
+	provider := validProviders[index-1]
 	requestPrepare := &Login2FARequest{
 		Challenge: challenge,
 		Provider:  provider,
 	}
 
-	responsePrepare := new(LoginResponse)
+	responsePrepare := new(Login2FAResponse)
 	if err := cli.Call(ctx, http.MethodPost, login2FAChallengeGetPath, requestPrepare, &responsePrepare); err != nil {
-		if apiError := make(Error); errors.As(err, &apiError) {
-			var has2FAChallenge bool
-			if challenge, has2FAChallenge = apiError["challenge"].(string); !has2FAChallenge {
-				return "", err
-			}
-		}
+		return "", err
 	}
 
 	fmt.Printf("Enter code: ")
+
 	scanner = bufio.NewScanner(os.Stdin)
 	scanner.Scan()
 	err = scanner.Err()
@@ -202,17 +222,16 @@ func (cli *Client) Login2FA(ctx context.Context, challenge string) (string, erro
 
 	code := scanner.Text()
 
-	requestVerify := &Login2FAVerifyRequest{
+	requestVerify := &Login2FARequest{
 		Challenge: responsePrepare.Challenge,
 		Code:      code,
 	}
 
-	response := new(LoginResponse)
+	responseVerify := new(Login2FAResponse)
 
-	if err := cli.Call(ctx, http.MethodPost, login2FAChallengeVerifyPath, requestVerify, &response); err != nil {
+	if err := cli.Call(ctx, http.MethodPost, login2FAChallengeVerifyPath, requestVerify, &responseVerify); err != nil {
 		return "", err
 	}
 
-	return response.Token, nil
-
+	return responseVerify.Token, nil
 }
