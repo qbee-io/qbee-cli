@@ -30,6 +30,7 @@ const (
 	connectDeviceOption     = "device"
 	connectTargetOption     = "target"
 	connectConfigFileOption = "config"
+	connectAllowFailures    = "allow-failures"
 )
 
 // Example config file:
@@ -68,6 +69,11 @@ var connectCommand = Command{
 			Short: "c",
 			Help:  "Config file to use",
 		},
+		{
+			Name: connectAllowFailures,
+			Help: "Allow one or more failures",
+			Flag: "true",
+		},
 	},
 	OptionsHandler: func(opts Options) error {
 		if opts[connectConfigFileOption] != "" {
@@ -99,9 +105,8 @@ var connectCommand = Command{
 			return err
 		}
 
-		remoteAccessTargets := make([]client.RemoteAccessConnection, 0)
-
 		if opts[connectConfigFileOption] != "" {
+			remoteAccessTargets := make([]client.RemoteAccessConnection, 0)
 			configBytes, err := os.ReadFile(opts[connectConfigFileOption])
 			if err != nil {
 				return fmt.Errorf("error reading config file: %w", err)
@@ -114,14 +119,11 @@ var connectCommand = Command{
 			if len(remoteAccessTargets) == 0 {
 				return fmt.Errorf("no connections defined in config file")
 			}
-		} else {
-			remoteAccessTargets = append(remoteAccessTargets, client.RemoteAccessConnection{
-				DeviceID: opts[connectDeviceOption],
-				Targets:  strings.Split(opts[connectTargetOption], ","),
-			})
+			return cli.ConnectMulti(ctx, remoteAccessTargets, opts[connectAllowFailures] == "true")
 		}
-		cli.ConnectMulti(ctx, remoteAccessTargets)
-		return nil
 
+		return cli.ParseConnect(ctx,
+			opts[connectDeviceOption],
+			strings.Split(opts[connectTargetOption], ","))
 	},
 }
