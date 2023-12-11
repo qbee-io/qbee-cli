@@ -1,3 +1,5 @@
+VERSION=$(shell git describe --tags --always --dirty)
+
 build-all:
 	$(MAKE) GOOS=darwin GOARCH=amd64 build
 	$(MAKE) GOOS=darwin GOARCH=arm64 build
@@ -7,7 +9,7 @@ build-all:
 
 build:
 	CGO_ENABLED=0 go build \
-		-ldflags "-s -w" \
+		-ldflags "-s -w -X github.com/qbee-io/qbee-cli/client.Version=$(VERSION)" \
 		-trimpath \
 		-o bin/qbee-cli-$(VERSION).$(GOOS)-$(GOARCH)
 
