@@ -63,7 +63,7 @@ var connectCommand = Command{
 			targets = append(targets, target)
 		}
 
-		cli, err := GetAuthenticatedClient(ctx)
+		cli, err := client.LoginGetAuthenticatedClient(ctx)
 		if err != nil {
 			return err
 		}
