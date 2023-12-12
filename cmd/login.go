@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/qbee-io/qbee-cli/client"
 )
@@ -58,6 +59,7 @@ var loginCommand = Command{
 			return err
 		}
 
+		fmt.Print("Successfully logged in as %s\n", email)
 		return nil
 	},
 }

@@ -156,14 +156,14 @@ func (cli *Client) Login(ctx context.Context, email, password string) (string, e
 }
 
 type Login2FARequest struct {
-	Challenge string `json:"challenge"`
-	Provider  string `json:"preferProvider"`
-	Code      string `json:"code"`
+	Challenge string `json:"challenge,omitempty"`
+	Provider  string `json:"preferProvider,omitempty"`
+	Code      string `json:"code,omitempty"`
 }
 
 type Login2FAResponse struct {
-	Challenge string `json:"challenge"`
-	Token     string `json:"token"`
+	Challenge string `json:"challenge,omitempty"`
+	Token     string `json:"token,omitempty"`
 }
 
 var validProviders = []string{"google", "email"}
@@ -211,7 +211,7 @@ func (cli *Client) Login2FA(ctx context.Context, challenge string) (string, erro
 		return "", err
 	}
 
-	fmt.Printf("Enter code: ")
+	fmt.Printf("Enter 2FA code: ")
 
 	scanner = bufio.NewScanner(os.Stdin)
 	scanner.Scan()
