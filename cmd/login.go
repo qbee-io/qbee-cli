@@ -59,7 +59,7 @@ var loginCommand = Command{
 			return err
 		}
 
-		fmt.Print("Successfully logged in as %s\n", email)
+		fmt.Printf("Successfully logged in as %s\n", email)
 		return nil
 	},
 }
