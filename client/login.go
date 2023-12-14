@@ -27,7 +27,6 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
-	"time"
 )
 
 const loginPath = "/api/v2/login"
@@ -95,20 +94,10 @@ func LoginReadConfig() (*LoginConfig, error) {
 	}
 
 	config := new(LoginConfig)
-	err = json.Unmarshal(jsonConfig, config)
-
-	token, err := DecodeAccessToken(config.AuthToken, StandardClaims{})
-
-	if err != nil {
+	if err := json.Unmarshal(jsonConfig, config); err != nil {
 		return nil, err
 	}
-
-	if token.Claims.ExpiresAt < time.Now().Unix() {
-		return nil, fmt.Errorf("token expired")
-	}
-
-	//Infof("Using cached token with expiry: %s\n", time.Unix(token.Claims.ExpiresAt, 0).Format(time.RFC3339))
-	return config, err
+	return config, nil
 }
 
 func LoginGetAuthenticatedClient(ctx context.Context) (*Client, error) {
