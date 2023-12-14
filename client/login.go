@@ -162,7 +162,7 @@ type Login2FAResponse struct {
 	Token     string `json:"token,omitempty"`
 }
 
-var validProviders = []string{"google", "email"}
+var valid2FAProviders = []string{"google", "email"}
 
 const login2FAChallengeGetPath = "/api/v2/challenge-get"
 const login2FAChallengeVerifyPath = "/api/v2/challenge-verify"
@@ -172,7 +172,7 @@ func (cli *Client) Login2FA(ctx context.Context, challenge string) (string, erro
 
 	fmt.Printf("Select 2FA provider:\n")
 
-	for i, provider := range validProviders {
+	for i, provider := range valid2FAProviders {
 		fmt.Printf("%d) %s\n", i+1, provider)
 	}
 
@@ -192,11 +192,11 @@ func (cli *Client) Login2FA(ctx context.Context, challenge string) (string, erro
 		return "", err
 	}
 
-	if index < 1 || index > len(validProviders) {
+	if index < 1 || index > len(valid2FAProviders) {
 		return "", fmt.Errorf("invalid provider")
 	}
 
-	provider := validProviders[index-1]
+	provider := valid2FAProviders[index-1]
 	requestPrepare := &Login2FARequest{
 		Challenge: challenge,
 		Provider:  provider,
