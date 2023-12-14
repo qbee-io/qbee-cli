@@ -46,11 +46,13 @@ type LoginResponse struct {
 	Token string `json:"token"`
 }
 
+// LoginConfig is the configuration file for the CLI authentication.
 type LoginConfig struct {
 	AuthToken string `json:"token"`
 	BaseURL   string `json:"base_url"`
 }
 
+// LoginWriteConfig writes the CLI authentication configuration to the user's home directory.
 func LoginWriteConfig(config LoginConfig) error {
 	dirname, err := os.UserHomeDir()
 	if err != nil {
@@ -74,6 +76,7 @@ func LoginWriteConfig(config LoginConfig) error {
 	return err
 }
 
+// LoginReadConfig reads the CLI authentication configuration from the user's home directory.
 func LoginReadConfig() (*LoginConfig, error) {
 	dirname, err := os.UserHomeDir()
 	if err != nil {
@@ -97,9 +100,11 @@ func LoginReadConfig() (*LoginConfig, error) {
 	if err := json.Unmarshal(jsonConfig, config); err != nil {
 		return nil, err
 	}
+
 	return config, nil
 }
 
+// LoginGetAuthenticatedClient returns a new authenticated API Client.
 func LoginGetAuthenticatedClient(ctx context.Context) (*Client, error) {
 	if os.Getenv("QBEE_EMAIL") != "" && os.Getenv("QBEE_PASSWORD") != "" {
 		email := os.Getenv("QBEE_EMAIL")
@@ -144,12 +149,14 @@ func (cli *Client) Login(ctx context.Context, email, password string) (string, e
 	return response.Token, nil
 }
 
+// Login2FARequest is the request body for the Login 2FA API.
 type Login2FARequest struct {
 	Challenge string `json:"challenge,omitempty"`
 	Provider  string `json:"preferProvider,omitempty"`
 	Code      string `json:"code,omitempty"`
 }
 
+// Login2FAResponse is the response body for the Login 2FA API.
 type Login2FAResponse struct {
 	Challenge string `json:"challenge,omitempty"`
 	Token     string `json:"token,omitempty"`
