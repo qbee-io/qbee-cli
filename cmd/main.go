@@ -48,5 +48,6 @@ var Main = Command{
 	SubCommands: map[string]Command{
 		"connect": connectCommand,
 		"version": versionCommand,
+		"login":   loginCommand,
 	},
 }

@@ -91,17 +91,11 @@ var connectCommand = Command{
 		return nil
 	},
 	Target: func(opts Options) error {
-		email := os.Getenv("QBEE_EMAIL")
-		password := os.Getenv("QBEE_PASSWORD")
 
 		ctx := context.Background()
 
-		cli := client.New()
-		if baseURL, ok := os.LookupEnv("QBEE_BASEURL"); ok {
-			cli = cli.WithBaseURL(baseURL)
-		}
-
-		if err := cli.Authenticate(ctx, email, password); err != nil {
+		cli, err := client.LoginGetAuthenticatedClient(ctx)
+		if err != nil {
 			return err
 		}
 
