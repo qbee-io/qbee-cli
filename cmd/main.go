@@ -49,5 +49,6 @@ var Main = Command{
 		"connect": connectCommand,
 		"version": versionCommand,
 		"login":   loginCommand,
+		"files":   filemanagerCommand,
 	},
 }
