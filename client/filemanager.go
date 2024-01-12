@@ -100,7 +100,7 @@ type fileOp struct {
 	op operation
 }
 
-const DefaultParallel = 1
+const DefaultParallel = 10
 
 // NewFileManager returns a new filemanager.
 func NewFileManager() *Manager {
@@ -153,26 +153,6 @@ func (m *Manager) Sync(ctx context.Context, source, dest string) error {
 		close(chJob)
 		wg.Wait()
 	}()
-	/*
-		// ensure that the destination path exists. This is needed as concurrent uploads to a directory
-		// that does not exist will lead to multiple directories being created with the same name
-		// We should probably fix this in the frontend api.
-		// We should not create the directory if there are no files to upload
-		if _, err := m.client.GetFileMetadata(ctx, dest); err != nil {
-			if apiError := make(Error); errors.As(err, &apiError) {
-				if errorMessage, ok := apiError["error"].(map[string]any); ok {
-					if errorMessage["code"].(float64) != http.StatusNotFound {
-						return err
-					}
-				}
-			}
-			baseName := filepath.Base(dest)
-			dirName := filepath.ToSlash(filepath.Dir(dest))
-			if err := m.client.CreateDirectory(ctx, dirName, baseName); err != nil {
-				return err
-			}
-		}
-	*/
 	return m.syncLocalToFileManager(innerCtx, chJob, source, dest)
 }
 
@@ -247,7 +227,7 @@ func (m *Manager) listFileManagerFiles(ctx context.Context, basePath, path strin
 	go func() {
 		defer close(c)
 
-		if fileMetaData, err := m.client.GetFileMetadata(ctx, path); err != nil {
+		if _, err := m.client.GetFileMetadata(ctx, path); err != nil {
 			if apiError := make(Error); errors.As(err, &apiError) {
 				if errorMessage, ok := apiError["error"].(map[string]any); ok {
 					if errorMessage["code"].(float64) != http.StatusNotFound {
@@ -255,11 +235,6 @@ func (m *Manager) listFileManagerFiles(ctx context.Context, basePath, path strin
 						return
 					}
 				}
-			}
-		} else {
-			if !fileMetaData.IsDir {
-				sendErrorInfoToChannel(ctx, c, fmt.Errorf("remote path %s is not a directory", path))
-				return
 			}
 		}
 		m.listFileManagerFilesRecursively(ctx, c, basePath, basePath)
@@ -271,93 +246,56 @@ func (m *Manager) listFileManagerFiles(ctx context.Context, basePath, path strin
 // listFileManagerFilesRecursively lists the files under the given path recursively.
 func (m *Manager) listFileManagerFilesRecursively(ctx context.Context, c chan *fileInfo, basePath, path string) {
 
-	total := 0
-	offset := 0
-	itemsPerPage := 765
-	noCandidates := 0
+	absoluteBasePath := filepath.Clean(basePath)
 
-	absoluteBasePath := filepath.ToSlash(basePath)
+	query := ListQuery{
+		ItemsPerPage: 1000,
+		Offset:       0,
+		Search: ListSearch{
+			Path: fmt.Sprintf("^%s/.*", absoluteBasePath),
+		},
+	}
 
-	mapFiles := make(map[string]fileInfo)
 	for {
-		query := ListQuery{
-			ItemsPerPage: itemsPerPage,
-			Offset:       offset,
-			Search: ListSearch{
-				Name: ".",
-			},
-			SortField:     "path",
-			SortDirection: "asc",
-		}
-		fmt.Printf("Query: %+v\n", query)
 		files, err := m.client.ListFiles(ctx, query)
 		if err != nil {
-			fmt.Printf("Error: %+v\n", err)
 			sendErrorInfoToChannel(ctx, c, err)
 			return
 		}
-		if files.Total != total {
-			fmt.Printf("Total: %d\n", files.Total)
-			total = files.Total
-		}
-		/*
-			fmt.Printf("Query: %+v\n", query)
-			fmt.Printf("Total: %d\n", files.Total)
-			fmt.Printf("Offset: %d\n", query.Offset)
-			fmt.Printf("Items: %d\n", len(files.Items))
-		*/
-		for index, file := range files.Items {
+		for _, file := range files.Items {
 
 			if strings.HasPrefix(file.Path, absoluteBasePath) && file.Path != absoluteBasePath {
-				fileInfo := fileInfo{File: file}
-				relativePath := strings.TrimPrefix(file.Path, absoluteBasePath)
-				if f, ok := mapFiles[relativePath]; ok {
-					fmt.Printf("Duplicate at index %d: %+v\n", index, relativePath)
-
-					fmt.Printf("e: %+v\n", f)
-					fmt.Printf("n: %+v\n", fileInfo)
-				} else {
-					noCandidates++
-					mapFiles[relativePath] = fileInfo
-				}
-				sendFileInfoToChannel(ctx, c, basePath, file.Path, fileInfo, false)
+				fi := fileInfo{File: file}
+				sendFileInfoToChannel(ctx, c, basePath, file.Path, fi, false)
 			}
 		}
 
-		offset += itemsPerPage
-		if offset > total {
+		query.Offset += query.ItemsPerPage
+		if query.Offset > files.Total {
 			break
 		}
 	}
-	fmt.Println("No candidates", noCandidates)
 }
 
 // upload uploads the file to the filemanager.
 func (m *Manager) upload(file *fileInfo, sourcePath, destPath string) error {
-	var sourceFilename, destinationPath, baseName string
 
 	if file.IsDir {
-		// We are not uploading directories
 		return nil
 	}
 
+	sourceFilename := filepath.Join(sourcePath, file.Name)
+	baseName := filepath.Base(file.Name)
+	dirName := filepath.ToSlash(filepath.Dir(file.Name))
+	destinationPath := filepath.ToSlash(filepath.Join(destPath, dirName))
+
 	if file.singleFile {
 		sourceFilename = sourcePath
-		baseName = filepath.Base(sourcePath)
+		baseName = filepath.Base(file.Path)
 		destinationPath = destPath
-	} else {
-		sourceFilename = filepath.Join(sourcePath, file.Name)
-		baseName = filepath.Base(file.Name)
-		dirName := filepath.ToSlash(filepath.Dir(file.Name))
-		destinationPath = filepath.ToSlash(filepath.Join(destPath, dirName))
 	}
 
-	println("Uploading", sourceFilename, "to", destinationPath)
-	/*
-		println("Destination path", destinationPath)
-		println("Base name", baseName)
-		println("Source filename", sourceFilename)
-	*/
+	fmt.Printf("Uploading %s to %s\n", sourceFilename, destinationPath)
 	if m.dryrun {
 		return nil
 	}
@@ -472,7 +410,7 @@ func listLocalFiles(ctx context.Context, basePath string) chan *fileInfo {
 // sendFileInfoToChannel sends the file info to the channel.
 func sendFileInfoToChannel(ctx context.Context, c chan *fileInfo, basePath, path string, fi fileInfo, singleFile bool) {
 	relPath, _ := filepath.Rel(basePath, path)
-	fi.Name = relPath
+	fi.Name = filepath.ToSlash(relPath)
 	select {
 	case c <- &fi:
 	case <-ctx.Done():
@@ -497,8 +435,6 @@ func filterFilesForSync(sourceFileChan, destFileChan chan *fileInfo, del bool) c
 
 	destFiles, err := fileInfoChanToMap(destFileChan)
 
-	fmt.Printf("Len destFiles: %d\n", len(destFiles))
-
 	go func() {
 		defer close(c)
 		if err != nil {
@@ -511,10 +447,6 @@ func filterFilesForSync(sourceFileChan, destFileChan chan *fileInfo, del bool) c
 			// 1. The dest doesn't exist
 			// 2. The dest doesn't have the same size as the source
 			if !ok || sourceInfo.Size != destInfo.Size {
-				if !sourceInfo.IsDir {
-					fmt.Printf("sourceInfo: %+v\n", sourceInfo)
-					fmt.Printf("destInfo: %+v\n", destInfo)
-				}
 				c <- &fileOp{fileInfo: sourceInfo}
 			} else {
 

@@ -217,6 +217,8 @@ const fileListPath = "/api/v2/files"
 type ListSearch struct {
 	// Name - file name to search for (partial-match).
 	Name string `json:"name"`
+	// Path - file path to search for (partial-match).
+	Path string `json:"path"`
 }
 
 const (
