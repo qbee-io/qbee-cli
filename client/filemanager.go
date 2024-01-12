@@ -284,33 +284,35 @@ func (m *Manager) listFileManagerFilesRecursively(ctx context.Context, c chan *f
 			ItemsPerPage: itemsPerPage,
 			Offset:       offset,
 			Search: ListSearch{
-				Name: "",
+				Name: ".",
 			},
+			SortField:     "path",
+			SortDirection: "asc",
 		}
-
+		fmt.Printf("Query: %+v\n", query)
 		files, err := m.client.ListFiles(ctx, query)
 		if err != nil {
 			fmt.Printf("Error: %+v\n", err)
 			sendErrorInfoToChannel(ctx, c, err)
 			return
 		}
-
-		total = files.Total
-		fmt.Printf("Query: %+v\n", query)
-		fmt.Printf("Total: %d\n", files.Total)
-		fmt.Printf("Offset: %d\n", query.Offset)
-		fmt.Printf("Items: %d\n", len(files.Items))
-		for _, file := range files.Items {
+		if files.Total != total {
+			fmt.Printf("Total: %d\n", files.Total)
+			total = files.Total
+		}
+		/*
+			fmt.Printf("Query: %+v\n", query)
+			fmt.Printf("Total: %d\n", files.Total)
+			fmt.Printf("Offset: %d\n", query.Offset)
+			fmt.Printf("Items: %d\n", len(files.Items))
+		*/
+		for index, file := range files.Items {
 
 			if strings.HasPrefix(file.Path, absoluteBasePath) && file.Path != absoluteBasePath {
 				fileInfo := fileInfo{File: file}
 				relativePath := strings.TrimPrefix(file.Path, absoluteBasePath)
-				if relativePath == "/examples/bundle_return_values.cf" {
-					fmt.Printf("relativePath: %+v\n", relativePath)
-					fmt.Printf("fileInfo: %+v\n", fileInfo)
-				}
 				if f, ok := mapFiles[relativePath]; ok {
-					fmt.Printf("Duplicate: %+v\n", relativePath)
+					fmt.Printf("Duplicate at index %d: %+v\n", index, relativePath)
 
 					fmt.Printf("e: %+v\n", f)
 					fmt.Printf("n: %+v\n", fileInfo)
