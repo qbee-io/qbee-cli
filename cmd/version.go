@@ -14,12 +14,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package cmd
+package main
 
 import (
 	"fmt"
 
-	"github.com/qbee-io/qbee-cli/client"
+	"go.qbee.io/client"
 )
 
 var versionCommand = Command{

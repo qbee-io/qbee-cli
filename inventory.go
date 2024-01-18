@@ -23,8 +23,8 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/qbee-io/qbee-cli/client/config"
-	"github.com/qbee-io/qbee-cli/client/types"
+	"go.qbee.io/client/config"
+	"go.qbee.io/client/types"
 )
 
 const deviceInventoryPath = "/api/v2/inventory"

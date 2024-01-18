@@ -20,7 +20,7 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/qbee-io/qbee-cli/client"
+	"go.qbee.io/client"
 )
 
 // TestParseRemoteAccessTarget tests that we return meaningful errors for invalid targets.
