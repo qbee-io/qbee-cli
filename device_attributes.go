@@ -16,7 +16,7 @@
 
 package client
 
-import "github.com/qbee-io/qbee-cli/client/types"
+import "go.qbee.io/client/types"
 
 // DeviceAttributes represents additional device attributes set for the device.
 type DeviceAttributes struct {

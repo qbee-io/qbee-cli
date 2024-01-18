@@ -1,10 +1,10 @@
-package cmd
+package main
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/qbee-io/qbee-cli/client"
+	"go.qbee.io/client"
 )
 
 const (

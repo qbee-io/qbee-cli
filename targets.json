@@ -1,0 +1,27 @@
+[
+  {
+    "device_id": "b55a2c849f7403cf701a36704ec3217746f4305c10bf9f650f612fb244b04cbd",
+    "targets": [
+      "2222:localhost:22",
+      "3000:localhost:3000"
+    ]
+  },
+  {
+    "device_id": "81391270cb45b13e8c93ecfb6df9f1e7cb0b08b9b698f9b22ef46d3027773eb2",
+    "targets": [
+      "2223:localhost:22"
+    ]
+  },
+  {
+    "device_id": "81391270cb45b13e8c93ecfb6df9f1e7cb0b08b9b698f9b22ef46d3027773eb3",
+    "targets": [
+      "2224:localhost:22"
+    ]
+  },
+  {
+    "device_id": "81391270cb45b13e8c93ecfb6df9f1e7cb0b08b9b698f9b22ef46d3027773eb",
+    "targets": [
+      "2225:localhost:22"
+    ]
+  }
+]

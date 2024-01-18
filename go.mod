@@ -1,4 +1,4 @@
-module github.com/qbee-io/qbee-cli
+module go.qbee.io/client
 
 go 1.21
 

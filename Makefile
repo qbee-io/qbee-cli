@@ -9,9 +9,10 @@ build-all:
 
 build:
 	CGO_ENABLED=0 go build \
-		-ldflags "-s -w -X github.com/qbee-io/qbee-cli/client.Version=$(VERSION)" \
+		-ldflags "-s -w -X go.qbee.io/client.Version=$(VERSION)" \
 		-trimpath \
-		-o bin/qbee-cli-$(VERSION).$(GOOS)-$(GOARCH)
+		-o bin/qbee-cli-$(VERSION).$(GOOS)-$(GOARCH) \
+		./cmd
 
 test:
 	go test ./...

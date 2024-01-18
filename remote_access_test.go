@@ -14,13 +14,11 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package client_test
+package client
 
 import (
 	"reflect"
 	"testing"
-
-	"github.com/qbee-io/qbee-cli/client"
 )
 
 // TestParseRemoteAccessTarget tests that we return meaningful errors for invalid targets.
@@ -28,13 +26,13 @@ func TestParseRemoteAccessTarget(t *testing.T) {
 	tests := []struct {
 		name         string
 		targetString string
-		want         client.RemoteAccessTarget
+		want         RemoteAccessTarget
 		wantErr      string
 	}{
 		{
 			name:         "valid tcp target",
 			targetString: "1:localhost:2",
-			want: client.RemoteAccessTarget{
+			want: RemoteAccessTarget{
 				Protocol:   "tcp",
 				LocalPort:  "1",
 				RemoteHost: "localhost",
@@ -44,7 +42,7 @@ func TestParseRemoteAccessTarget(t *testing.T) {
 		{
 			name:         "valid udp target",
 			targetString: "1:localhost:2/udp",
-			want: client.RemoteAccessTarget{
+			want: RemoteAccessTarget{
 				Protocol:   "udp",
 				LocalPort:  "1",
 				RemoteHost: "localhost",
@@ -54,7 +52,7 @@ func TestParseRemoteAccessTarget(t *testing.T) {
 		{
 			name:         "valid stdio target",
 			targetString: "stdio:localhost:2",
-			want: client.RemoteAccessTarget{
+			want: RemoteAccessTarget{
 				Protocol:   "tcp",
 				LocalPort:  "stdio",
 				RemoteHost: "localhost",
@@ -64,7 +62,7 @@ func TestParseRemoteAccessTarget(t *testing.T) {
 		{
 			name:         "valid stdio target",
 			targetString: "stdio:localhost:2/udp",
-			want: client.RemoteAccessTarget{
+			want: RemoteAccessTarget{
 				Protocol:   "udp",
 				LocalPort:  "stdio",
 				RemoteHost: "localhost",
@@ -114,7 +112,7 @@ func TestParseRemoteAccessTarget(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := client.ParseRemoteAccessTarget(tt.targetString)
+			got, err := ParseRemoteAccessTarget(tt.targetString)
 			if err != nil && err.Error() != tt.wantErr {
 				t.Errorf("ParseRemoteAccessTarget() error = %v, wantErr %v", err, tt.wantErr)
 				return

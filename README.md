@@ -22,7 +22,7 @@ Please remember to rotate your credentials regularly.
 ## Run latest using Go
 
 ```shell
-go run github.com/qbee-io/qbee-cli@latest
+go run go.qbee.io/client@latest
 ```
 
 ## Remote access using qbee-cli
@@ -51,7 +51,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/qbee-io/qbee-cli/client"
+	"go.qbee.io/client"
 )
 
 func main() {
