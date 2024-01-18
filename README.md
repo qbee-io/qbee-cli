@@ -8,7 +8,7 @@ qbee-cli is a client library and a command line tool used to interact with [qbee
 ## Build the binary
 
 ```shell
-go build -o qbee-cli
+go build -o qbee-cli ./cmd
 ```
 
 ## Providing credentials
@@ -22,7 +22,7 @@ Please remember to rotate your credentials regularly.
 ## Run latest using Go
 
 ```shell
-go run go.qbee.io/client@latest
+go run go.qbee.io/client/cmd@latest
 ```
 
 ## Remote access using qbee-cli
