@@ -14,7 +14,12 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package cmd
+package main
+
+import (
+	"fmt"
+	"os"
+)
 
 const (
 	mainLogLevel = "log-level"
@@ -51,4 +56,11 @@ var Main = Command{
 		"login":   loginCommand,
 		"files":   filemanagerCommand,
 	},
+}
+
+func main() {
+	if err := Main.Execute(os.Args[1:], nil); err != nil {
+		fmt.Fprintf(os.Stderr, "qbee-cli error: %s\n", err)
+		os.Exit(1)
+	}
 }

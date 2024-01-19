@@ -14,7 +14,7 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package cmd
+package main
 
 import (
 	"context"
@@ -23,7 +23,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/qbee-io/qbee-cli/client"
+	"go.qbee.io/client"
 )
 
 const (
