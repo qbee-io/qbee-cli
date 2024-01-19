@@ -38,8 +38,8 @@ type multiErr struct {
 
 func (e *multiErr) Append(err error) {
 	e.mu.Lock()
+	defer e.mu.Unlock()
 	e.err = append(e.err, err)
-	e.mu.Unlock()
 }
 
 func (e *multiErr) Len() int {
@@ -77,6 +77,7 @@ type SyncStatistics struct {
 	Bytes        int
 	Files        int64
 	DeletedFiles int64
+	DeletedDirs  int64
 	mutex        sync.RWMutex
 }
 
@@ -160,7 +161,12 @@ func (m *Manager) Sync(ctx context.Context, source, dest string) error {
 func (m *Manager) GetStatistics() SyncStatistics {
 	m.statistics.mutex.Lock()
 	defer m.statistics.mutex.Unlock()
-	return SyncStatistics{Bytes: m.statistics.Bytes, Files: m.statistics.Files, DeletedFiles: m.statistics.DeletedFiles}
+	return SyncStatistics{
+		Bytes:        m.statistics.Bytes,
+		Files:        m.statistics.Files,
+		DeletedFiles: m.statistics.DeletedFiles,
+		DeletedDirs:  m.statistics.DeletedDirs,
+	}
 }
 
 // syncLocalToFileManager syncs the files between filemanager and local disks.
@@ -174,7 +180,8 @@ func (m *Manager) syncLocalToFileManager(ctx context.Context, chJob chan func(),
 		listLocalFiles(ctx, sourcePath), m.listFileManagerFiles(ctx, destPath, destPath), m.del,
 	) {
 		if source.op == opDelete && source.IsDir {
-			// We are not deleting directories
+			// We are not deleting directories here as they may contain
+			// files that and subfolders that are not deleted yet.
 			dirsToDelete[source.Name] = *source.fileInfo
 			continue
 		}
@@ -222,7 +229,7 @@ func (m *Manager) syncLocalToFileManager(ctx context.Context, chJob chan func(),
 
 // listFileManagerFiles returns a channel which receives the infos of the files under the given basePath.
 func (m *Manager) listFileManagerFiles(ctx context.Context, basePath, path string) chan *fileInfo {
-	c := make(chan *fileInfo, 50000) // TODO: revisit this buffer size later
+	c := make(chan *fileInfo)
 
 	go func() {
 		defer close(c)
@@ -230,6 +237,7 @@ func (m *Manager) listFileManagerFiles(ctx context.Context, basePath, path strin
 		if _, err := m.client.GetFileMetadata(ctx, path); err != nil {
 			if apiError := make(Error); errors.As(err, &apiError) {
 				if errorMessage, ok := apiError["error"].(map[string]any); ok {
+					// We accept 404 as a valid response, as it means that the path doesn't exist.
 					if errorMessage["code"].(float64) != http.StatusNotFound {
 						sendErrorInfoToChannel(ctx, c, err)
 						return
@@ -237,14 +245,14 @@ func (m *Manager) listFileManagerFiles(ctx context.Context, basePath, path strin
 				}
 			}
 		}
-		m.listFileManagerFilesRecursively(ctx, c, basePath, basePath)
+		m.listFileManagerFilesPagination(ctx, c, basePath, basePath)
 	}()
 
 	return c
 }
 
-// listFileManagerFilesRecursively lists the files under the given path recursively.
-func (m *Manager) listFileManagerFilesRecursively(ctx context.Context, c chan *fileInfo, basePath, path string) {
+// listFileManagerFilesPagination lists the files under the given path recursively.
+func (m *Manager) listFileManagerFilesPagination(ctx context.Context, c chan *fileInfo, basePath, path string) {
 
 	absoluteBasePath := filepath.Clean(basePath)
 
@@ -280,6 +288,7 @@ func (m *Manager) listFileManagerFilesRecursively(ctx context.Context, c chan *f
 // upload uploads the file to the filemanager.
 func (m *Manager) upload(file *fileInfo, sourcePath, destPath string) error {
 
+	// We do not upload directories
 	if file.IsDir {
 		return nil
 	}
@@ -327,7 +336,12 @@ func (m *Manager) deleteRemote(file *fileInfo, destPath string) error {
 	if err != nil {
 		return err
 	}
-	m.incrementDeletedFiles()
+
+	if file.IsDir {
+		m.incrementDeletedDirs()
+	} else {
+		m.incrementDeletedFiles()
+	}
 	return nil
 }
 
@@ -344,6 +358,12 @@ func (m *Manager) incrementDeletedFiles() {
 	m.statistics.mutex.Lock()
 	defer m.statistics.mutex.Unlock()
 	m.statistics.DeletedFiles++
+}
+
+func (m *Manager) incrementDeletedDirs() {
+	m.statistics.mutex.Lock()
+	defer m.statistics.mutex.Unlock()
+	m.statistics.DeletedDirs++
 }
 
 // listLocalFiles returns a channel which receives the infos of the files under the given basePath.
@@ -371,12 +391,12 @@ func listLocalFiles(ctx context.Context, basePath string) chan *fileInfo {
 				Path:  basePath,
 				Size:  int(stat.Size()),
 				IsDir: stat.IsDir(),
+				Name:  filepath.Base(basePath),
 			},
 			singleFile: true,
 		}
 
 		if !stat.IsDir() {
-
 			sendFileInfoToChannel(ctx, c, basePath, basePath, fileObject, true)
 			return
 		}
@@ -410,7 +430,9 @@ func listLocalFiles(ctx context.Context, basePath string) chan *fileInfo {
 // sendFileInfoToChannel sends the file info to the channel.
 func sendFileInfoToChannel(ctx context.Context, c chan *fileInfo, basePath, path string, fi fileInfo, singleFile bool) {
 	relPath, _ := filepath.Rel(basePath, path)
-	fi.Name = filepath.ToSlash(relPath)
+	if !singleFile {
+		fi.Name = filepath.ToSlash(relPath)
+	}
 	select {
 	case c <- &fi:
 	case <-ctx.Done():
@@ -449,8 +471,13 @@ func filterFilesForSync(sourceFileChan, destFileChan chan *fileInfo, del bool) c
 			if !ok || sourceInfo.Size != destInfo.Size {
 				c <- &fileOp{fileInfo: sourceInfo}
 			} else {
-
+				// Only calculate the digest if the size is the same
 				sourcePath := filepath.Join(sourceInfo.Path, sourceInfo.Name)
+
+				if sourceInfo.singleFile {
+					sourcePath = sourceInfo.Path
+				}
+
 				sourceDigest, err := getFileDigest(sourcePath)
 				if err != nil {
 					c <- &fileOp{fileInfo: &fileInfo{err: err}}

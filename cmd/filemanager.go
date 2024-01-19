@@ -14,14 +14,14 @@
 //
 // SPDX-License-Identifier: Apache-2.0
 
-package cmd
+package main
 
 import (
 	"context"
 	"fmt"
 	"time"
 
-	"github.com/qbee-io/qbee-cli/client"
+	"go.qbee.io/client"
 )
 
 const (
@@ -78,8 +78,11 @@ var fileManagerSyncCommand = Command{
 		syncTime := (time.Now().UnixNano() - startSync.UnixNano()) / (int64(time.Millisecond) / int64(time.Nanosecond))
 		s := fileManager.GetStatistics()
 
-		fmt.Printf("Sync results:\nBytes written: %d\nFiles uploaded: %d\nTime spent: %d millisecond(s)\nFiles deleted: %d\n", s.Bytes, s.Files, syncTime, s.DeletedFiles)
-
+		fmt.Printf("Sync results:\nBytes written: %d\n", s.Bytes)
+		fmt.Printf("Files uploaded: %d\n", s.Files)
+		fmt.Printf("Files deleted: %d\n", s.DeletedFiles)
+		fmt.Printf("Directories deleted: %d\n", s.DeletedDirs)
+		fmt.Printf("Time spent: %d millisecond(s)\n", syncTime)
 		return nil
 	},
 }
