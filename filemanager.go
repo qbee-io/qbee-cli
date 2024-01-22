@@ -134,8 +134,53 @@ func (m *Manager) WithDryRun(dryrun bool) *Manager {
 	return m
 }
 
-// Sync syncs the files between filemanager and local disks.
 func (m *Manager) Sync(ctx context.Context, source, dest string) error {
+	return m.runParalellSync(ctx, source, dest)
+}
+
+func (m *Manager) Purge(ctx context.Context, dest string) error {
+	return m.runParalellSync(ctx, "", dest)
+}
+
+func (m *Manager) Print(ctx context.Context, dest string) error {
+
+	fileChan := m.listFileManagerFiles(ctx, dest)
+
+	fileMap, err := fileInfoChanToMap(fileChan)
+
+	if err != nil {
+		return err
+	}
+
+	keys := make([]string, 0)
+	for k := range fileMap {
+		keys = append(keys, k)
+	}
+
+	sort.Sort(sort.Reverse(sort.StringSlice(keys)))
+	totalBytes := 0
+	totalDirs := 0
+	totalFiles := 0
+	for _, k := range keys {
+		if fileMap[k].IsDir {
+			fmt.Printf("D - %s\n", fileMap[k].Name)
+			totalDirs++
+			continue
+		}
+		fmt.Printf("F - %s\n", fileMap[k].Name)
+		totalBytes += fileMap[k].Size
+		totalFiles++
+	}
+
+	fmt.Println("Total paths:", len(keys))
+	fmt.Println("Total files:", totalFiles)
+	fmt.Println("Total directories:", totalDirs)
+	fmt.Println("Total bytes:", totalBytes)
+	return nil
+}
+
+// Sync syncs the files between filemanager and local disks.
+func (m *Manager) runParalellSync(ctx context.Context, source, dest string) error {
 	innerCtx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
@@ -177,7 +222,7 @@ func (m *Manager) syncLocalToFileManager(ctx context.Context, chJob chan func(),
 	dirsToDelete := make(map[string]fileInfo, 0)
 
 	for source := range filterFilesForSync(
-		listLocalFiles(ctx, sourcePath), m.listFileManagerFiles(ctx, destPath, destPath), m.del,
+		listLocalFiles(ctx, sourcePath), m.listFileManagerFiles(ctx, destPath), m.del,
 	) {
 		if source.op == opDelete && source.IsDir {
 			// We are not deleting directories here as they may contain
@@ -228,13 +273,13 @@ func (m *Manager) syncLocalToFileManager(ctx context.Context, chJob chan func(),
 }
 
 // listFileManagerFiles returns a channel which receives the infos of the files under the given basePath.
-func (m *Manager) listFileManagerFiles(ctx context.Context, basePath, path string) chan *fileInfo {
+func (m *Manager) listFileManagerFiles(ctx context.Context, basePath string) chan *fileInfo {
 	c := make(chan *fileInfo)
 
 	go func() {
 		defer close(c)
 
-		if _, err := m.client.GetFileMetadata(ctx, path); err != nil {
+		if _, err := m.client.GetFileMetadata(ctx, basePath); err != nil {
 			if apiError := make(Error); errors.As(err, &apiError) {
 				if errorMessage, ok := apiError["error"].(map[string]any); ok {
 					// We accept 404 as a valid response, as it means that the path doesn't exist.
@@ -245,14 +290,14 @@ func (m *Manager) listFileManagerFiles(ctx context.Context, basePath, path strin
 				}
 			}
 		}
-		m.listFileManagerFilesPagination(ctx, c, basePath, basePath)
+		m.listFileManagerFilesPagination(ctx, c, basePath)
 	}()
 
 	return c
 }
 
 // listFileManagerFilesPagination lists the files under the given path recursively.
-func (m *Manager) listFileManagerFilesPagination(ctx context.Context, c chan *fileInfo, basePath, path string) {
+func (m *Manager) listFileManagerFilesPagination(ctx context.Context, c chan *fileInfo, basePath string) {
 
 	absoluteBasePath := filepath.Clean(basePath)
 
@@ -370,6 +415,11 @@ func (m *Manager) incrementDeletedDirs() {
 // basePath have to be absolute path.
 func listLocalFiles(ctx context.Context, basePath string) chan *fileInfo {
 	c := make(chan *fileInfo)
+
+	if basePath == "" {
+		close(c)
+		return c
+	}
 
 	basePath = filepath.ToSlash(basePath)
 

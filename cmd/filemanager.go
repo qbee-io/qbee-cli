@@ -19,6 +19,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"strconv"
 	"time"
 
 	"go.qbee.io/client"
@@ -27,6 +28,9 @@ import (
 const (
 	fileManagerSourceOption      = "source"
 	fileManagerDestinationOption = "destination"
+	fileManagerDryRynOption      = "dry-run"
+	fileManagerParalellOption    = "parallel"
+	fileManagerDeleteOption      = "delete"
 )
 
 var filemanagerCommand = Command{
@@ -35,13 +39,6 @@ var filemanagerCommand = Command{
 		"sync":  fileManagerSyncCommand,
 		"purge": fileManagerPurgeCommand,
 		"print": fileManagerPrintCommand,
-		"diff": {
-			Description: "Diff a local directory with the filemanager",
-			Target: func(opts Options) error {
-				fmt.Printf("Diffing local directory %s with filemanager directory %s\n", opts[fileManagerSourceOption], opts[fileManagerDestinationOption])
-				return nil
-			},
-		},
 	},
 }
 
@@ -60,6 +57,21 @@ var fileManagerSyncCommand = Command{
 			Help:     "Destination path in the filemanager",
 			Required: true,
 		},
+		{
+			Name: fileManagerDryRynOption,
+			Help: "Dry run. Do nothing, just print",
+			Flag: "true",
+		},
+		{
+			Name:    fileManagerParalellOption,
+			Help:    "Number of parallel workers",
+			Default: fmt.Sprintf("%d", client.DefaultParallel),
+		},
+		{
+			Name: fileManagerDeleteOption,
+			Help: "Delete files in the destination that are not in the source",
+			Flag: "true",
+		},
 	},
 	Target: func(opts Options) error {
 		ctx := context.Background()
@@ -69,7 +81,20 @@ var fileManagerSyncCommand = Command{
 		if err != nil {
 			return err
 		}
-		fileManager := client.NewFileManager().WithClient(cli).WithDryRun(false).WithDelete(true)
+
+		paralell, err := strconv.Atoi(opts[fileManagerParalellOption])
+		if err != nil {
+			return err
+		}
+
+		fileManager := client.
+			NewFileManager().
+			WithClient(cli).
+			WithDelete(opts[fileManagerDeleteOption] == "true").
+			WithDryRun(opts[fileManagerDryRynOption] == "true").
+			WithParallel(paralell)
+
+		fmt.Printf("Syncing directory %s to %s\n", opts[fileManagerSourceOption], opts[fileManagerDestinationOption])
 
 		startSync := time.Now()
 		if err := fileManager.Sync(ctx, opts[fileManagerSourceOption], opts[fileManagerDestinationOption]); err != nil {
@@ -98,7 +123,27 @@ var fileManagerPrintCommand = Command{
 		},
 	},
 	Target: func(opts Options) error {
+
+		ctx := context.Background()
+
+		cli, err := client.LoginGetAuthenticatedClient(ctx)
+
+		if err != nil {
+			return err
+		}
+
+		fileManager := client.
+			NewFileManager().
+			WithClient(cli)
+
+		fmt.Printf("Printing directory %s\n", opts[fileManagerDestinationOption])
+
+		if err := fileManager.Print(ctx, opts[fileManagerDestinationOption]); err != nil {
+			return err
+		}
+
 		return nil
+
 	},
 }
 
@@ -111,18 +156,55 @@ var fileManagerPurgeCommand = Command{
 			Help:     "Destination path in the filemanager",
 			Required: true,
 		},
+		{
+			Name:     fileManagerDryRynOption,
+			Help:     "Dry run. Do nothing, just print",
+			Required: false,
+			Default:  "false",
+			Flag:     "true",
+		},
+		{
+			Name:     fileManagerParalellOption,
+			Help:     "Number of parallel workers",
+			Required: false,
+			Default:  fmt.Sprintf("%d", client.DefaultParallel),
+		},
 	},
 	Target: func(opts Options) error {
-		/*
-			ctx := context.Background()
 
-			fileManager, err := GetAuthFileManager()
-			if err != nil {
-				return err
-			}
-		*/
+		ctx := context.Background()
+
+		cli, err := client.LoginGetAuthenticatedClient(ctx)
+
+		if err != nil {
+			return err
+		}
+
+		paralell, err := strconv.Atoi(opts[fileManagerParalellOption])
+		if err != nil {
+			return err
+		}
+
+		fileManager := client.
+			NewFileManager().
+			WithClient(cli).
+			WithDelete(true).
+			WithDryRun(opts[fileManagerDryRynOption] == "true").
+			WithParallel(paralell)
+
 		fmt.Printf("Purging directory %s\n", opts[fileManagerDestinationOption])
 
+		startSync := time.Now()
+		if err := fileManager.Purge(ctx, opts[fileManagerDestinationOption]); err != nil {
+			return err
+		}
+		syncTime := (time.Now().UnixNano() - startSync.UnixNano()) / (int64(time.Millisecond) / int64(time.Nanosecond))
+		s := fileManager.GetStatistics()
+
+		fmt.Printf("Purge results:\n")
+		fmt.Printf("Files deleted: %d\n", s.DeletedFiles)
+		fmt.Printf("Directories deleted: %d\n", s.DeletedDirs)
+		fmt.Printf("Time spent: %d millisecond(s)\n", syncTime)
 		return nil
 	},
 }
