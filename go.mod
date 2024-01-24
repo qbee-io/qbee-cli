@@ -2,7 +2,7 @@ module go.qbee.io/client
 
 go 1.21
 
-// retract lagecy versions of the module
+// retract legacy versions of the module
 retract [v1.2023.0, v1.2024.4]
 
 require (
