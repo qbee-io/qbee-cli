@@ -2,12 +2,8 @@ module go.qbee.io/client
 
 go 1.21
 
-// retract lagecy version of the module
-retract (
-	v1.2023.49-1
-	v1.2023.49
-	v1.2024.4
-)
+// retract lagecy versions of the module
+retract [v1.2023.0, v1.2024.4]
 
 require (
 	github.com/jpillora/chisel v1.9.1
