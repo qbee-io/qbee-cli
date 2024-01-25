@@ -19,6 +19,8 @@ package main
 import (
 	"context"
 	"fmt"
+	"path"
+	"path/filepath"
 	"time"
 
 	"go.qbee.io/client"
@@ -29,22 +31,15 @@ const (
 	fileManagerDestinationOption = "destination"
 	fileManagerDryRynOption      = "dry-run"
 	fileManagerDeleteOption      = "delete"
-	fileManagerVerboseOption     = "verbose"
+	fileManagerRecursiveOption   = "recursive"
 )
 
 var filemanagerCommand = Command{
-	Description: "Synchronize a local directory with the filemanager",
+	Description: "Filemanager commands	",
 	SubCommands: map[string]Command{
-		"sync":  fileManagerSyncCommand,
-		"purge": fileManagerPurgeCommand,
-		"list":  fileManagerListCommand,
-	},
-	Options: []Option{
-		{
-			Name: fileManagerVerboseOption,
-			Help: "Verbose output",
-			Flag: "true",
-		},
+		"sync": fileManagerSyncCommand,
+		"rm":   fileManagerPurgeCommand,
+		"list": fileManagerListCommand,
 	},
 }
 
@@ -88,31 +83,33 @@ var fileManagerSyncCommand = Command{
 			WithDelete(opts[fileManagerDeleteOption] == "true").
 			WithDryRun(opts[fileManagerDryRynOption] == "true")
 
-		fmt.Printf("Syncing directory %s to %s\n", opts[fileManagerSourceOption], opts[fileManagerDestinationOption])
+		remotePath := path.Clean(opts[fileManagerDestinationOption])
+		localPath := filepath.Clean(opts[fileManagerSourceOption])
+
+		fmt.Printf("Syncing directory %s to %s\n", localPath, remotePath)
 
 		startSync := time.Now()
-		if err := fileManager.Sync(ctx, opts[fileManagerSourceOption], opts[fileManagerDestinationOption]); err != nil {
+		if err := fileManager.Sync(ctx, localPath, remotePath); err != nil {
 			return err
 		}
-		syncTime := (time.Now().UnixNano() - startSync.UnixNano()) / (int64(time.Millisecond) / int64(time.Nanosecond))
-		fmt.Printf("Time spent: %d millisecond(s)\n", syncTime)
+
+		fmt.Printf("Time spent: %s\n", time.Since(startSync).String())
 		return nil
 	},
 }
 
 var fileManagerListCommand = Command{
-	Description: "Print a files in the filemanager",
+	Description: "List files in the filemanager",
 	Options: []Option{
 		{
 			Name:     fileManagerDestinationOption,
 			Short:    "d",
 			Help:     "Destination path in the filemanager",
-			Required: true,
+			Default:  "/",
+			Required: false,
 		},
 	},
 	Target: func(opts Options) error {
-
-		fmt.Printf("Printing directory %s\n", opts[fileManagerDestinationOption])
 
 		ctx := context.Background()
 
@@ -126,7 +123,11 @@ var fileManagerListCommand = Command{
 			NewFileManager().
 			WithClient(cli)
 
-		if err := fileManager.List(ctx, opts[fileManagerDestinationOption]); err != nil {
+		remotePath := path.Clean(opts[fileManagerDestinationOption])
+
+		fmt.Printf("Listing directory %s\n", remotePath)
+
+		if err := fileManager.List(ctx, remotePath); err != nil {
 			return err
 		}
 		return nil
@@ -135,7 +136,7 @@ var fileManagerListCommand = Command{
 }
 
 var fileManagerPurgeCommand = Command{
-	Description: "Purge a directory in the filemanager",
+	Description: "Remove a path in the filemanager",
 	Options: []Option{
 		{
 			Name:     fileManagerDestinationOption,
@@ -148,6 +149,12 @@ var fileManagerPurgeCommand = Command{
 			Help:     "Dry run. Do nothing, just print",
 			Required: false,
 			Default:  "false",
+			Flag:     "true",
+		},
+		{
+			Name:     fileManagerRecursiveOption,
+			Help:     "Recursive. Delete all files in the directory",
+			Required: false,
 			Flag:     "true",
 		},
 	},
@@ -167,14 +174,20 @@ var fileManagerPurgeCommand = Command{
 			WithDelete(true).
 			WithDryRun(opts[fileManagerDryRynOption] == "true")
 
-		fmt.Printf("Purging directory %s\n", opts[fileManagerDestinationOption])
+		remotePath := path.Clean(opts[fileManagerDestinationOption])
+
+		// Do not delete the root directory
+		if remotePath == "/" {
+			return fmt.Errorf("cannot delete root directory")
+		}
+
+		fmt.Printf("Removing path %s\n", remotePath)
 
 		startSync := time.Now()
-		if err := fileManager.Purge(ctx, opts[fileManagerDestinationOption]); err != nil {
+		if err := fileManager.Remove(ctx, remotePath, opts[fileManagerRecursiveOption] == "true"); err != nil {
 			return err
 		}
-		syncTime := (time.Now().UnixNano() - startSync.UnixNano()) / (int64(time.Millisecond) / int64(time.Nanosecond))
-		fmt.Printf("Time spent: %d millisecond(s)\n", syncTime)
+		fmt.Printf("Time spent: %s\n", time.Since(startSync).String())
 		return nil
 	},
 }
