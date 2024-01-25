@@ -18,12 +18,17 @@ package client
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
+	"strings"
 	"sync"
 	"time"
+
+	"go.qbee.io/transport"
 
 	chisel "github.com/jpillora/chisel/client"
 	"golang.org/x/net/http/httpproxy"
@@ -220,8 +225,66 @@ func (cli *Client) ParseConnect(ctx context.Context, deviceID string, targets []
 	return cli.Connect(ctx, deviceID, parsedTargets)
 }
 
-// Connect establishes a connection to a remote device.
-func (cli *Client) Connect(ctx context.Context, deviceID string, targets []RemoteAccessTarget) error {
+// connect establishes a connection to a remote device.
+func (cli *Client) connect(ctx context.Context, deviceID, edgeHost string, targets []RemoteAccessTarget) error {
+	edgeURL := fmt.Sprintf("https://%s/device/%s", edgeHost, deviceID)
+
+	var tlsConfig *tls.Config
+
+	// for testing purposes, allow connections to localhost without verifying the certificate
+	if strings.HasPrefix(edgeHost, "edge:") || strings.HasPrefix(edgeHost, "localhost:") {
+		tlsConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	}
+
+	client, err := transport.NewClient(ctx, edgeURL, cli.authToken, tlsConfig)
+	if err != nil {
+		return fmt.Errorf("error initializing remote access client: %w", err)
+	}
+	defer client.Close()
+
+	closers := make([]func(), 0, len(targets))
+	defer func() {
+		for _, closer := range closers {
+			closer()
+		}
+	}()
+
+	for _, target := range targets {
+		localHostPort := fmt.Sprintf("localhost:%s", target.LocalPort)
+		remoteHostPort := fmt.Sprintf("%s:%s", target.RemoteHost, target.RemotePort)
+
+		switch target.Protocol {
+		case "tcp":
+			var tcpListener *net.TCPListener
+			if tcpListener, err = client.OpenTCPTunnel(ctx, localHostPort, remoteHostPort); err != nil {
+				return fmt.Errorf("error opening TCP tunnel: %w", err)
+			}
+
+			closers = append(closers, func() { _ = tcpListener.Close() })
+		case "udp":
+			var udpConn *transport.UDPTunnel
+			if udpConn, err = client.OpenUDPTunnel(ctx, localHostPort, remoteHostPort); err != nil {
+				return fmt.Errorf("error opening UDP tunnel: %w", err)
+			}
+
+			closers = append(closers, udpConn.Close)
+		default:
+			return fmt.Errorf("invalid protocol %s", target.Protocol)
+		}
+
+		fmt.Printf("Tunneling %s %s to %s\n", target.Protocol, localHostPort, remoteHostPort)
+	}
+
+	// Wait for context to be cancelled
+	<-ctx.Done()
+
+	return nil
+}
+
+// legacyConnect establishes a connection to a remote device using the legacy remote access solution.
+func (cli *Client) legacyConnect(ctx context.Context, deviceID string, targets []RemoteAccessTarget) error {
 	ports := make([]string, len(targets))
 	for _, target := range targets {
 		ports = append(ports, fmt.Sprintf("%s:%s", target.Protocol, target.RemotePort))
@@ -280,4 +343,22 @@ func (cli *Client) Connect(ctx context.Context, deviceID string, targets []Remot
 		return err
 	}
 	return nil
+}
+
+// Connect establishes a connection to a remote device.
+func (cli *Client) Connect(ctx context.Context, deviceID string, targets []RemoteAccessTarget) error {
+	deviceStatus, err := cli.GetDeviceStatus(ctx, deviceID)
+	if err != nil {
+		return err
+	}
+
+	if !deviceStatus.RemoteAccess {
+		return fmt.Errorf("remote access is not available for device %s", deviceID)
+	}
+
+	if strings.HasPrefix(deviceStatus.Edge, "rcnsl") {
+		return cli.legacyConnect(ctx, deviceID, targets)
+	}
+
+	return cli.connect(ctx, deviceID, deviceStatus.Edge, targets)
 }
