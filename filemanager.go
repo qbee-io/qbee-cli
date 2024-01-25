@@ -23,7 +23,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
 	"sort"
 	"strings"
@@ -207,23 +206,22 @@ func (m *Manager) filterUploads() (map[string]File, error) {
 // snapshotLocal returns a channel which receives the infos of the files under the given basePath.
 func (m *Manager) snapshotLocal(localPath string) error {
 
-	basePath := filepath.Clean(localPath)
-	stat, err := os.Stat(basePath)
+	stat, err := os.Stat(localPath)
 
 	if err != nil {
 		return err
 	}
 
 	if !stat.IsDir() {
-		return fmt.Errorf("path %s is not a directory or a regular file", basePath)
+		return fmt.Errorf("path %s is not a directory or a regular file", localPath)
 	}
 
-	err = filepath.Walk(basePath, func(path string, stat os.FileInfo, err error) error {
+	err = filepath.Walk(localPath, func(path string, stat os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		fileName, err := filepath.Rel(basePath, path)
+		fileName, err := filepath.Rel(localPath, path)
 		if err != nil {
 			return err
 		}
@@ -249,13 +247,11 @@ func (m *Manager) snapshotLocal(localPath string) error {
 // listFileManagerFiles returns a channel which receives the infos of the files under the given basePath.
 func (m *Manager) snapshotRemote(ctx context.Context, remotePath string) error {
 
-	basePath := path.Clean(remotePath)
-
-	searchPath := fmt.Sprintf("^%s/.*", basePath)
+	searchPath := fmt.Sprintf("^%s/.*", remotePath)
 
 	// Search for the root directory
-	if basePath == "/" {
-		searchPath = fmt.Sprintf("^%s.*", basePath)
+	if remotePath == "/" {
+		searchPath = fmt.Sprintf("^%s.*", remotePath)
 	}
 
 	query := ListQuery{
@@ -277,7 +273,7 @@ func (m *Manager) snapshotRemote(ctx context.Context, remotePath string) error {
 				return err
 			}
 
-			remoteRelativeName := strings.TrimPrefix(file.Path, basePath+"/")
+			remoteRelativeName := strings.TrimPrefix(file.Path, remotePath+"/")
 			m.remoteFiles[remoteRelativeName] = file
 		}
 
