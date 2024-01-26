@@ -243,9 +243,9 @@ func (cli *Client) connect(ctx context.Context, deviceID, edgeHost string, targe
 	if err != nil {
 		return fmt.Errorf("error initializing remote access client: %w", err)
 	}
-	defer client.Close()
 
-	closers := make([]io.Closer, 0, len(targets))
+	// close the client and all local listeners when the context is cancelled
+	closers := []io.Closer{client}
 	defer func() {
 		for _, closer := range closers {
 			_ = closer.Close()
