@@ -31,7 +31,7 @@ func (error Error) Error() string {
 		panic(err)
 	}
 
-	return fmt.Sprintf("%s", data)
+	return string(data)
 }
 
 // ParseErrorResponse parses API error from the provided response body.
