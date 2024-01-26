@@ -46,12 +46,12 @@ func (cli *Client) UploadFileReplace(ctx context.Context, path, name string, rep
 		return err
 	}
 
-	if part, err := multipartWriter.CreateFormField("replace"); err != nil {
+	if part, err = multipartWriter.CreateFormField("replace"); err != nil {
 		return err
-	} else {
-		if _, err = part.Write([]byte(fmt.Sprintf("%t", replace))); err != nil {
-			return err
-		}
+	}
+
+	if _, err = part.Write([]byte(fmt.Sprintf("%t", replace))); err != nil {
+		return err
 	}
 
 	if err = multipartWriter.Close(); err != nil {

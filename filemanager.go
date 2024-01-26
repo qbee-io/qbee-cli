@@ -132,7 +132,7 @@ func (m *FileManager) Remove(ctx context.Context, remotePath string, recursive b
 	return m.deleteRemoteRecursive()
 }
 
-// // List files under provided remotePath.
+// List files under provided remotePath.
 func (m *FileManager) List(ctx context.Context, remotePath string) error {
 
 	if err := m.snapshotRemote(ctx, remotePath); err != nil {
