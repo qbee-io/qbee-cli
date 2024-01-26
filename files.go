@@ -17,6 +17,11 @@ const filePath = "/api/v2/file"
 // UploadFile a file to the file-manager.
 // path must start with a slash (/)
 func (cli *Client) UploadFile(ctx context.Context, path, name string, reader io.Reader) error {
+	return cli.UploadFileReplace(ctx, path, name, false, reader)
+}
+
+// UploadFileReplace a file to the file-manager if replace is set to true
+func (cli *Client) UploadFileReplace(ctx context.Context, path, name string, replace bool, reader io.Reader) error {
 	buf := new(bytes.Buffer)
 	multipartWriter := multipart.NewWriter(buf)
 
@@ -38,6 +43,14 @@ func (cli *Client) UploadFile(ctx context.Context, path, name string, reader io.
 	}
 
 	if _, err = part.Write([]byte(path)); err != nil {
+		return err
+	}
+
+	if part, err = multipartWriter.CreateFormField("replace"); err != nil {
+		return err
+	}
+
+	if _, err = part.Write([]byte(fmt.Sprintf("%t", replace))); err != nil {
 		return err
 	}
 
@@ -186,6 +199,7 @@ type File struct {
 	Created   int64  `json:"created"`
 	IsDir     bool   `json:"is_dir"`
 	Path      string `json:"path"`
+	Digest    string `json:"digest"`
 	User      struct {
 		ID string `json:"user_id"`
 	} `json:"user"`
@@ -203,6 +217,8 @@ const fileListPath = "/api/v2/files"
 type ListSearch struct {
 	// Name - file name to search for (partial-match).
 	Name string `json:"name"`
+	// Path - file path to search for (partial-match).
+	Path string `json:"path"`
 }
 
 const (
