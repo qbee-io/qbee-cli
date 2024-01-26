@@ -30,7 +30,7 @@ import (
 
 // FileManager provides implementation of common batch operations inside qbee's file manager.
 type FileManager struct {
-	// client is the filemanager client.
+	// client is the FileManager client.
 	client *Client
 	// deleteMissing deletes files on the remote that are not present locally.
 	deleteMissing bool
@@ -42,7 +42,7 @@ type FileManager struct {
 	localFiles map[string]File
 }
 
-// NewFileManager returns a new filemanager.
+// NewFileManager returns a new FileManager.
 func NewFileManager() *FileManager {
 	return &FileManager{
 		remoteFiles: make(map[string]File),
@@ -68,7 +68,7 @@ func (m *FileManager) WithDryRun(dryrun bool) *FileManager {
 	return m
 }
 
-// Sync synchronizes the local directory with the filemanager.
+// Sync synchronizes the local directory with the FileManager.
 func (m *FileManager) Sync(ctx context.Context, source, dest string) error {
 
 	if err := m.snapshotLocal(source); err != nil {
@@ -145,7 +145,7 @@ func (m *FileManager) List(ctx context.Context, remotePath string) error {
 	return nil
 }
 
-// deleteRemoteRecursive deletes all discovered remote files in the filemanager.
+// deleteRemoteRecursive deletes all discovered remote files in the FileManager.
 func (m *FileManager) deleteRemoteRecursive() error {
 	deletes := sortFileMap(m.remoteFiles, true)
 
@@ -243,7 +243,7 @@ func (m *FileManager) snapshotLocal(localPath string) error {
 	return nil
 }
 
-// listFileManagerFiles populates the remoteFiles map with the files in the filemanager.
+// listFileManagerFiles populates the remoteFiles map with the files in the FileManager.
 func (m *FileManager) snapshotRemote(ctx context.Context, remotePath string) error {
 
 	searchPath := fmt.Sprintf("^%s/.*", remotePath)
@@ -280,7 +280,7 @@ func (m *FileManager) snapshotRemote(ctx context.Context, remotePath string) err
 	return nil
 }
 
-// upload uploads the file to the filemanager.
+// upload uploads the file to the FileManager.
 func (m *FileManager) upload(ctx context.Context, file File, sourcePath, destPath string) error {
 
 	// We do not upload directories
