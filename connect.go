@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/url"
@@ -244,10 +245,10 @@ func (cli *Client) connect(ctx context.Context, deviceID, edgeHost string, targe
 	}
 	defer client.Close()
 
-	closers := make([]func(), 0, len(targets))
+	closers := make([]io.Closer, 0, len(targets))
 	defer func() {
 		for _, closer := range closers {
-			closer()
+			_ = closer.Close()
 		}
 	}()
 
@@ -262,14 +263,14 @@ func (cli *Client) connect(ctx context.Context, deviceID, edgeHost string, targe
 				return fmt.Errorf("error opening TCP tunnel: %w", err)
 			}
 
-			closers = append(closers, func() { _ = tcpListener.Close() })
+			closers = append(closers, tcpListener)
 		case "udp":
 			var udpConn *transport.UDPTunnel
 			if udpConn, err = client.OpenUDPTunnel(ctx, localHostPort, remoteHostPort); err != nil {
 				return fmt.Errorf("error opening UDP tunnel: %w", err)
 			}
 
-			closers = append(closers, udpConn.Close)
+			closers = append(closers, udpConn)
 		default:
 			return fmt.Errorf("invalid protocol %s", target.Protocol)
 		}
