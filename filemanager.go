@@ -1,4 +1,4 @@
-// Copyright 2023 qbee.io
+// Copyright 2024 qbee.io
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -28,53 +28,48 @@ import (
 	"strings"
 )
 
-// Manager manages the sync operation.
-type Manager struct {
+// FileManager provides implementation of common batch operations inside qbee's file manager.
+type FileManager struct {
 	// client is the filemanager client.
 	client *Client
 	// deleteMissing deletes files on the remote that are not present locally.
 	deleteMissing bool
-	// dryrun does not perform any changes.
-	dryrun bool
+	// dryRun does not perform any changes.
+	dryRun bool
 	// remoteFiles is a map of the remote files.
 	remoteFiles map[string]File
 	// localFiles is a map of the local files.
 	localFiles map[string]File
 }
 
-// fileInfo represents a file in the filemanager.
-type fileInfo struct {
-	File
-}
-
 // NewFileManager returns a new filemanager.
-func NewFileManager() *Manager {
-	return &Manager{
+func NewFileManager() *FileManager {
+	return &FileManager{
 		remoteFiles: make(map[string]File),
 		localFiles:  make(map[string]File),
 	}
 }
 
 // WithClient sets the client
-func (m *Manager) WithClient(client *Client) *Manager {
+func (m *FileManager) WithClient(client *Client) *FileManager {
 	m.client = client
 	return m
 }
 
 // WithDelete sets the delete flag
-func (m *Manager) WithDelete(del bool) *Manager {
+func (m *FileManager) WithDelete(del bool) *FileManager {
 	m.deleteMissing = del
 	return m
 }
 
 // WithDryRun sets the dryrun flag
-func (m *Manager) WithDryRun(dryrun bool) *Manager {
-	m.dryrun = dryrun
+func (m *FileManager) WithDryRun(dryrun bool) *FileManager {
+	m.dryRun = dryrun
 	return m
 }
 
 // Sync synchronizes the local directory with the filemanager.
-func (m *Manager) Sync(ctx context.Context, source, dest string) error {
+func (m *FileManager) Sync(ctx context.Context, source, dest string) error {
 
 	if err := m.snapshotLocal(source); err != nil {
 		return err
@@ -114,8 +109,12 @@ func (m *Manager) Sync(ctx context.Context, source, dest string) error {
 	return nil
 }
 
-// Remove deletes all files in the given path.
-func (m *Manager) Remove(ctx context.Context, remotePath string, recursive bool) error {
+// Remove all files under provided remotePath.
+//
+// If recursive flag is set to true and remotePath points to a directory,
+// this method will remove all nested files and directories recursively.
+// Otherwise, it will return an error when deleting a non-empty directory.
+func (m *FileManager) Remove(ctx context.Context, remotePath string, recursive bool) error {
 
 	// Add the root directory to the list of files to delete
 	m.remoteFiles[remotePath] = File{
@@ -133,8 +132,8 @@ func (m *Manager) Remove(ctx context.Context, remotePath string, recursive bool)
 	return m.deleteRemoteRecursive()
 }
 
-// List prints the files in the filemanager.
-func (m *Manager) List(ctx context.Context, remotePath string) error {
+// // List files under provided remotePath.
+func (m *FileManager) List(ctx context.Context, remotePath string) error {
 
 	if err := m.snapshotRemote(ctx, remotePath); err != nil {
 		return err
@@ -147,7 +146,7 @@ func (m *Manager) List(ctx context.Context, remotePath string) error {
 }
 
 // deleteRemoteRecursive deletes all discovered remote files in the filemanager.
-func (m *Manager) deleteRemoteRecursive() error {
+func (m *FileManager) deleteRemoteRecursive() error {
 	deletes := sortFileMap(m.remoteFiles, true)
 
 	for _, remoteFile := range deletes {
@@ -174,7 +173,7 @@ func sortFileMap(fileMap map[string]File, reverse bool) []File {
 }
 
 // filterUploads returns the files that need to be uploaded.
-func (m *Manager) filterUploads() (map[string]File, error) {
+func (m *FileManager) filterUploads() (map[string]File, error) {
 
 	uploads := make(map[string]File)
 
@@ -203,8 +202,8 @@ func (m *Manager) filterUploads() (map[string]File, error) {
 	return uploads, nil
 }
 
-// snapshotLocal returns a channel which receives the infos of the files under the given basePath.
-func (m *Manager) snapshotLocal(localPath string) error {
+// snapshotLocal populates the localFiles map with the files in the local directory.
+func (m *FileManager) snapshotLocal(localPath string) error {
 
 	stat, err := os.Stat(localPath)
 
@@ -213,7 +212,7 @@ func (m *Manager) snapshotLocal(localPath string) error {
 	}
 
 	if !stat.IsDir() {
-		return fmt.Errorf("path %s is not a directory or a regular file", localPath)
+		return fmt.Errorf("path %s is not a directory", localPath)
 	}
 
 	err = filepath.Walk(localPath, func(path string, stat os.FileInfo, err error) error {
@@ -244,8 +243,8 @@ func (m *Manager) snapshotLocal(localPath string) error {
 	return nil
 }
 
-// listFileManagerFiles returns a channel which receives the infos of the files under the given basePath.
-func (m *Manager) snapshotRemote(ctx context.Context, remotePath string) error {
+// listFileManagerFiles populates the remoteFiles map with the files in the filemanager.
+func (m *FileManager) snapshotRemote(ctx context.Context, remotePath string) error {
 
 	searchPath := fmt.Sprintf("^%s/.*", remotePath)
 
@@ -268,11 +267,6 @@ func (m *Manager) snapshotRemote(ctx context.Context, remotePath string) error {
 			return err
 		}
 		for _, file := range files.Items {
-
-			if err != nil {
-				return err
-			}
-
 			remoteRelativeName := strings.TrimPrefix(file.Path, remotePath+"/")
 			m.remoteFiles[remoteRelativeName] = file
 		}
@@ -287,7 +281,7 @@ func (m *Manager) snapshotRemote(ctx context.Context, remotePath string) error {
 }
 
 // upload uploads the file to the filemanager.
-func (m *Manager) upload(ctx context.Context, file File, sourcePath, destPath string) error {
+func (m *FileManager) upload(ctx context.Context, file File, sourcePath, destPath string) error {
 
 	// We do not upload directories
 	if file.IsDir {
@@ -300,7 +294,7 @@ func (m *Manager) upload(ctx context.Context, file File, sourcePath, destPath st
 
 	fmt.Printf("Uploading %s to %s\n", file.Path, destinationPath)
 
-	if m.dryrun {
+	if m.dryRun {
 		return nil
 	}
 
@@ -319,10 +313,10 @@ func (m *Manager) upload(ctx context.Context, file File, sourcePath, destPath st
 }
 
 // deleteRemote deletes the remote file.
-func (m *Manager) deleteRemote(remoteFile File) error {
+func (m *FileManager) deleteRemote(remoteFile File) error {
 
 	fmt.Printf("Deleting %s\n", remoteFile.Path)
-	if m.dryrun {
+	if m.dryRun {
 		return nil
 	}
 

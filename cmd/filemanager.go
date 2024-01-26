@@ -1,4 +1,4 @@
-// Copyright 2023 qbee.io
+// Copyright 2024 qbee.io
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -35,10 +35,10 @@ const (
 )
 
 var filemanagerCommand = Command{
-	Description: "Filemanager commands	",
+	Description: "Filemanager commands",
 	SubCommands: map[string]Command{
 		"sync": fileManagerSyncCommand,
-		"rm":   fileManagerPurgeCommand,
+		"rm":   fileManagerRemoveCommand,
 		"list": fileManagerListCommand,
 	},
 }
@@ -93,7 +93,7 @@ var fileManagerSyncCommand = Command{
 			return err
 		}
 
-		fmt.Printf("Time spent: %s\n", time.Since(startSync).String())
+		fmt.Printf("Time spent: %s\n", time.Since(startSync))
 		return nil
 	},
 }
@@ -135,7 +135,7 @@ var fileManagerListCommand = Command{
 	},
 }
 
-var fileManagerPurgeCommand = Command{
+var fileManagerRemoveCommand = Command{
 	Description: "Remove a path in the filemanager",
 	Options: []Option{
 		{
@@ -187,7 +187,7 @@ var fileManagerPurgeCommand = Command{
 		if err := fileManager.Remove(ctx, remotePath, opts[fileManagerRecursiveOption] == "true"); err != nil {
 			return err
 		}
-		fmt.Printf("Time spent: %s\n", time.Since(startSync).String())
+		fmt.Printf("Time spent: %s\n", time.Since(startSync))
 		return nil
 	},
 }
