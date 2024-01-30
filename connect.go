@@ -227,8 +227,8 @@ func (cli *Client) ParseConnect(ctx context.Context, deviceID string, targets []
 }
 
 // connect establishes a connection to a remote device.
-func (cli *Client) connect(ctx context.Context, deviceID, edgeHost string, targets []RemoteAccessTarget) error {
-	edgeURL := fmt.Sprintf("https://%s/device/%s", edgeHost, deviceID)
+func (cli *Client) connect(ctx context.Context, deviceUUID, edgeHost string, targets []RemoteAccessTarget) error {
+	edgeURL := fmt.Sprintf("https://%s/device/%s", edgeHost, deviceUUID)
 
 	var tlsConfig *tls.Config
 
@@ -357,9 +357,12 @@ func (cli *Client) Connect(ctx context.Context, deviceID string, targets []Remot
 		return fmt.Errorf("remote access is not available for device %s", deviceID)
 	}
 
-	if strings.HasPrefix(deviceStatus.Edge, "rcnsl") {
+	switch deviceStatus.EdgeVersion {
+	case EdgeVersionOpenVPN:
 		return cli.legacyConnect(ctx, deviceID, targets)
+	case EdgeVersionNative:
+		return cli.connect(ctx, deviceStatus.UUID, deviceStatus.Edge, targets)
+	default:
+		return fmt.Errorf("unsupported edge version %d", deviceStatus.EdgeVersion)
 	}
-
-	return cli.connect(ctx, deviceID, deviceStatus.Edge, targets)
 }
