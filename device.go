@@ -10,8 +10,11 @@ import (
 type EdgeVersion uint8
 
 const (
+	// EdgeVersionOpenVPN indicates that the device is connected to an OpenVPN edge.
 	EdgeVersionOpenVPN = 0
-	EdgeVersionNative  = 1
+
+	// EdgeVersionNative indicates that the device is connected to a native qbee remote access edge.
+	EdgeVersionNative = 1
 )
 
 // DeviceStatus is the status of a device.
