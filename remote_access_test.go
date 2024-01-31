@@ -77,11 +77,6 @@ func TestParseRemoteAccessTarget(t *testing.T) {
 			wantErr:      "invalid format",
 		},
 		{
-			name:         "unsupported host",
-			targetString: "123:example.com:123",
-			wantErr:      "invalid remote host: only localhost is supported",
-		},
-		{
 			name:         "local port out of range",
 			targetString: "123456:localhost:2",
 			wantErr:      "invalid local port: invalid port number",

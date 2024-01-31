@@ -288,6 +288,11 @@ func (cli *Client) connect(ctx context.Context, deviceUUID, edgeHost string, tar
 func (cli *Client) legacyConnect(ctx context.Context, deviceID string, targets []RemoteAccessTarget) error {
 	ports := make([]string, len(targets))
 	for _, target := range targets {
+		// only localhost is supported as remote host for legacy remote access
+		if target.RemoteHost != "localhost" {
+			return fmt.Errorf("invalid remote host: only localhost is supported")
+		}
+
 		ports = append(ports, fmt.Sprintf("%s:%s", target.Protocol, target.RemotePort))
 	}
 
