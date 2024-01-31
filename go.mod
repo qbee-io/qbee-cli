@@ -4,7 +4,7 @@ go 1.21
 
 require (
 	github.com/jpillora/chisel v1.9.1
-	go.qbee.io/transport v1.24.6
+	go.qbee.io/transport v1.24.7
 	golang.org/x/net v0.20.0
 )
 

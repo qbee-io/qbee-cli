@@ -25,6 +25,7 @@ import (
 	"net"
 	"net/http"
 	"net/url"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -226,6 +227,27 @@ func (cli *Client) ParseConnect(ctx context.Context, deviceID string, targets []
 	return cli.Connect(ctx, deviceID, parsedTargets)
 }
 
+// connectStdio connects to the given target using stdin/stdout.
+func (cli *Client) connectStdio(ctx context.Context, client *transport.Client, target RemoteAccessTarget) error {
+	remoteHostPort := fmt.Sprintf("%s:%s", target.RemoteHost, target.RemotePort)
+
+	stream, err := client.OpenStream(ctx, transport.MessageTypeTCPTunnel, []byte(remoteHostPort))
+	if err != nil {
+		return fmt.Errorf("error opening stream: %w", err)
+	}
+	defer stream.Close()
+
+	// copy from stdin to stream
+	go func() {
+		_, _ = io.Copy(stream, os.Stdin)
+	}()
+
+	// copy from stream to stdout
+	_, err = io.Copy(os.Stdout, stream)
+
+	return err
+}
+
 // connect establishes a connection to a remote device.
 func (cli *Client) connect(ctx context.Context, deviceUUID, edgeHost string, targets []RemoteAccessTarget) error {
 	edgeURL := fmt.Sprintf("https://%s/device/%s", edgeHost, deviceUUID)
@@ -237,6 +259,10 @@ func (cli *Client) connect(ctx context.Context, deviceUUID, edgeHost string, tar
 		tlsConfig = &tls.Config{
 			InsecureSkipVerify: true,
 		}
+	}
+
+	if len(targets) == 0 {
+		return fmt.Errorf("no targets defined")
 	}
 
 	client, err := transport.NewClient(ctx, edgeURL, cli.authToken, tlsConfig)
@@ -252,7 +278,15 @@ func (cli *Client) connect(ctx context.Context, deviceUUID, edgeHost string, tar
 		}
 	}()
 
+	if len(targets) == 1 && targets[0].LocalPort == "stdio" {
+		return cli.connectStdio(ctx, client, targets[0])
+	}
+
 	for _, target := range targets {
+		if target.LocalPort == "stdio" {
+			return fmt.Errorf("stdio is only supported for single target connections")
+		}
+
 		localHostPort := fmt.Sprintf("localhost:%s", target.LocalPort)
 		remoteHostPort := fmt.Sprintf("%s:%s", target.RemoteHost, target.RemotePort)
 
