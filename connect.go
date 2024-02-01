@@ -18,12 +18,19 @@ package client
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
+	"io"
+	"net"
 	"net/http"
 	"net/url"
+	"os"
+	"strings"
 	"sync"
 	"time"
+
+	"go.qbee.io/transport"
 
 	chisel "github.com/jpillora/chisel/client"
 	"golang.org/x/net/http/httpproxy"
@@ -220,10 +227,106 @@ func (cli *Client) ParseConnect(ctx context.Context, deviceID string, targets []
 	return cli.Connect(ctx, deviceID, parsedTargets)
 }
 
-// Connect establishes a connection to a remote device.
-func (cli *Client) Connect(ctx context.Context, deviceID string, targets []RemoteAccessTarget) error {
+// connectStdio connects to the given target using stdin/stdout.
+func (cli *Client) connectStdio(ctx context.Context, client *transport.Client, target RemoteAccessTarget) error {
+	remoteHostPort := fmt.Sprintf("%s:%s", target.RemoteHost, target.RemotePort)
+
+	stream, err := client.OpenStream(ctx, transport.MessageTypeTCPTunnel, []byte(remoteHostPort))
+	if err != nil {
+		return fmt.Errorf("error opening stream: %w", err)
+	}
+	defer stream.Close()
+
+	// copy from stdin to stream
+	go func() {
+		_, _ = io.Copy(stream, os.Stdin)
+	}()
+
+	// copy from stream to stdout
+	_, err = io.Copy(os.Stdout, stream)
+
+	return err
+}
+
+// connect establishes a connection to a remote device.
+func (cli *Client) connect(ctx context.Context, deviceUUID, edgeHost string, targets []RemoteAccessTarget) error {
+	edgeURL := fmt.Sprintf("https://%s/device/%s", edgeHost, deviceUUID)
+
+	var tlsConfig *tls.Config
+
+	// for testing purposes, allow connections to localhost without verifying the certificate
+	if strings.HasPrefix(edgeHost, "edge:") || strings.HasPrefix(edgeHost, "localhost:") {
+		tlsConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	}
+
+	if len(targets) == 0 {
+		return fmt.Errorf("no targets defined")
+	}
+
+	client, err := transport.NewClient(ctx, edgeURL, cli.authToken, tlsConfig)
+	if err != nil {
+		return fmt.Errorf("error initializing remote access client: %w", err)
+	}
+
+	// close the client and all local listeners when the context is cancelled
+	closers := []io.Closer{client}
+	defer func() {
+		for _, closer := range closers {
+			_ = closer.Close()
+		}
+	}()
+
+	if len(targets) == 1 && targets[0].LocalPort == "stdio" {
+		return cli.connectStdio(ctx, client, targets[0])
+	}
+
+	for _, target := range targets {
+		if target.LocalPort == "stdio" {
+			return fmt.Errorf("stdio is only supported for single target connections")
+		}
+
+		localHostPort := fmt.Sprintf("localhost:%s", target.LocalPort)
+		remoteHostPort := fmt.Sprintf("%s:%s", target.RemoteHost, target.RemotePort)
+
+		switch target.Protocol {
+		case "tcp":
+			var tcpListener *net.TCPListener
+			if tcpListener, err = client.OpenTCPTunnel(ctx, localHostPort, remoteHostPort); err != nil {
+				return fmt.Errorf("error opening TCP tunnel: %w", err)
+			}
+
+			closers = append(closers, tcpListener)
+		case "udp":
+			var udpConn *transport.UDPTunnel
+			if udpConn, err = client.OpenUDPTunnel(ctx, localHostPort, remoteHostPort); err != nil {
+				return fmt.Errorf("error opening UDP tunnel: %w", err)
+			}
+
+			closers = append(closers, udpConn)
+		default:
+			return fmt.Errorf("invalid protocol %s", target.Protocol)
+		}
+
+		fmt.Printf("Tunneling %s %s to %s\n", target.Protocol, localHostPort, remoteHostPort)
+	}
+
+	// Wait for context to be cancelled
+	<-ctx.Done()
+
+	return nil
+}
+
+// legacyConnect establishes a connection to a remote device using the legacy remote access solution.
+func (cli *Client) legacyConnect(ctx context.Context, deviceID string, targets []RemoteAccessTarget) error {
 	ports := make([]string, len(targets))
 	for _, target := range targets {
+		// only localhost is supported as remote host for legacy remote access
+		if target.RemoteHost != "localhost" {
+			return fmt.Errorf("invalid remote host: only localhost is supported")
+		}
+
 		ports = append(ports, fmt.Sprintf("%s:%s", target.Protocol, target.RemotePort))
 	}
 
@@ -280,4 +383,25 @@ func (cli *Client) Connect(ctx context.Context, deviceID string, targets []Remot
 		return err
 	}
 	return nil
+}
+
+// Connect establishes a connection to a remote device.
+func (cli *Client) Connect(ctx context.Context, deviceID string, targets []RemoteAccessTarget) error {
+	deviceStatus, err := cli.GetDeviceStatus(ctx, deviceID)
+	if err != nil {
+		return err
+	}
+
+	if !deviceStatus.RemoteAccess {
+		return fmt.Errorf("remote access is not available for device %s", deviceID)
+	}
+
+	switch deviceStatus.EdgeVersion {
+	case EdgeVersionOpenVPN:
+		return cli.legacyConnect(ctx, deviceID, targets)
+	case EdgeVersionNative:
+		return cli.connect(ctx, deviceStatus.UUID, deviceStatus.Edge, targets)
+	default:
+		return fmt.Errorf("unsupported edge version %d", deviceStatus.EdgeVersion)
+	}
 }

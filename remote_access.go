@@ -91,12 +91,6 @@ func ParseRemoteAccessTarget(targetString string) (RemoteAccessTarget, error) {
 
 	target.RemoteHost = parts[1]
 
-	// Only localhost is supported as remote host at the moment.
-	// Once we roll out the new remote access solution, will allow any host in the same network.
-	if target.RemoteHost != "localhost" {
-		return target, fmt.Errorf("invalid remote host: only localhost is supported")
-	}
-
 	remotePort := parts[2]
 	if strings.HasSuffix(remotePort, "/udp") {
 		target.Protocol = UDP

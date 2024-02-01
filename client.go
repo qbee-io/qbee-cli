@@ -57,7 +57,7 @@ func (cli *Client) GetHTTPClient() *http.Client {
 
 // WithBaseURL sets the base URL of the API endpoint.
 func (cli *Client) WithBaseURL(baseURL string) *Client {
-	cli.baseURL = baseURL
+	cli.baseURL = strings.TrimSuffix(baseURL, "/")
 	return cli
 }
 
