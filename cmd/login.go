@@ -3,8 +3,11 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
 
 	"go.qbee.io/client"
+	"golang.org/x/term"
 )
 
 const (
@@ -28,7 +31,7 @@ var loginCommand = Command{
 			Name:     loginUserPassword,
 			Short:    "p",
 			Help:     "User password.",
-			Required: true,
+			Required: false,
 		},
 		{
 			Name:    loginBaseURL,
@@ -45,6 +48,17 @@ var loginCommand = Command{
 
 		ctx := context.Background()
 		cli := client.New().WithBaseURL(baseURL)
+
+		if password == "" {
+			fmt.Printf("Enter password for %s: ", email)
+			bytePassword, err := term.ReadPassword(int(os.Stdin.Fd()))
+			if err != nil {
+				return err
+			}
+			// Print a newline to simulate the enter key press
+			fmt.Println()
+			password = strings.TrimSpace(string(bytePassword))
+		}
 
 		if err := cli.Authenticate(ctx, email, password); err != nil {
 			return err
