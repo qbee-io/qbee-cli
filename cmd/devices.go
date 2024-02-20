@@ -92,9 +92,10 @@ var devicesListSubcommand = Command{
 
 		if query.Offset, err = strconv.Atoi(opts[devicesListPageOption]); err != nil {
 			return fmt.Errorf("invalid offset: %s", opts[devicesListPageOption])
-		} else {
-			query.Offset *= query.ItemsPerPage
 		}
+
+		// convert page to offset
+		query.Offset *= query.ItemsPerPage
 
 		var devices *client.InventoryListResponse
 		if devices, err = cli.ListDeviceInventory(ctx, query); err != nil {
