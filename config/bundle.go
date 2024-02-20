@@ -67,4 +67,5 @@ type BundleData struct {
 	DockerContainers     *DockerContainers     `json:"docker_containers,omitempty"`
 	Password             *Password             `json:"password,omitempty"`
 	Firewall             *Firewall             `json:"firewall,omitempty"`
+	Rauc                 *Rauc                 `json:"rauc,omitempty"`
 }

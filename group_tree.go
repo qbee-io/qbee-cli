@@ -30,24 +30,24 @@ const (
 
 // GroupTreeChangeData represents the data for a group tree change.
 type GroupTreeChangeData struct {
-	ParentID string `json:"parent_id" bson:"parent_id"`
-	NodeID   string `json:"node_id" bson:"node_id"`
+	ParentID string `json:"parent_id"`
+	NodeID   string `json:"node_id"`
 
 	// Type is the type of the group (device or group).
 	// This parameter is used only for moving of existing groups.
-	Type NodeType `json:"type,omitempty" bson:"type,omitempty"`
+	Type NodeType `json:"type,omitempty"`
 
 	// OldParentID is the ID of the parent group before the move.
 	// This parameter is used only for moving groups.
-	OldParentID string `json:"old_parent_id,omitempty" bson:"old_parent_id,omitempty"`
+	OldParentID string `json:"old_parent_id,omitempty"`
 
 	// Title is the title of the new group.
 	// This parameter is used only for creating new groups.
-	Title string `json:"title,omitempty" bson:"title,omitempty"`
+	Title string `json:"title,omitempty"`
 
 	// Tags is the list of tags to set on the node.
 	// This parameter is used only for updates.
-	Tags []string `json:"tags,omitempty" bson:"tags,omitempty"`
+	Tags []string `json:"tags,omitempty"`
 }
 
 // GroupTree represents the device group tree.
@@ -58,26 +58,26 @@ type GroupTree struct {
 
 // GroupTreeNode represents a node in the device group tree.
 type GroupTreeNode struct {
-	ID     string          `json:"id" bson:"id"`
-	NodeID string          `json:"node_id" bson:"node_id"`
-	Title  string          `json:"title" bson:"title"`
-	Type   NodeType        `json:"type" bson:"type"`
-	Tags   []string        `json:"tags,omitempty" bson:"tags,omitempty"`
-	Nodes  []GroupTreeNode `json:"nodes" bson:"nodes,omitempty"`
+	ID     string          `json:"id"`
+	NodeID string          `json:"node_id"`
+	Title  string          `json:"title"`
+	Type   NodeType        `json:"type"`
+	Tags   []string        `json:"tags,omitempty"`
+	Nodes  []GroupTreeNode `json:"nodes"`
 
 	// device only attributes
 	PublicKeyDigest string `json:"pub_key_digest,omitempty"`
-	DeviceCommitSHA string `json:"device_commit_sha,omitempty" bson:"device_commit_sha"`
+	DeviceCommitSHA string `json:"device_commit_sha,omitempty"`
 
 	Status           string           `json:"status,omitempty"`
-	ConfigPropagated bool             `json:"config_propagated,omitempty" bson:"config_propagated"`
-	AgentInterval    int              `json:"agentinterval,omitempty" bson:"agentinterval"`
-	LastReported     int64            `json:"last_reported,omitempty" bson:"last_reported"`
-	Attributes       DeviceAttributes `json:"attributes" bson:"attributes"`
+	ConfigPropagated bool             `json:"config_propagated,omitempty"`
+	AgentInterval    int              `json:"agentinterval,omitempty"`
+	LastReported     int64            `json:"last_reported,omitempty"`
+	Attributes       DeviceAttributes `json:"attributes"`
 
 	// internal attributes
-	ParentID string `json:"-" bson:"parent_id"`
-	Hostname string `json:"-" bson:"hostname"`
+	ParentID string `json:"-"`
+	Hostname string `json:"-"`
 }
 
 // GroupTreeChange represents a change in the device tree.
@@ -87,8 +87,8 @@ type GroupTreeNode struct {
 // - move: parent_id, node_id, old_parent_id, type=device (only devices can be moved)
 // - delete: node_id, type=group (only empty groups can be deleted)
 type GroupTreeChange struct {
-	Action GroupTreeAction     `json:"action" bson:"action"`
-	Data   GroupTreeChangeData `json:"data" bson:"data"`
+	Action GroupTreeAction     `json:"action"`
+	Data   GroupTreeChangeData `json:"data"`
 }
 
 const grouptreePath = "/api/v2/grouptree"
