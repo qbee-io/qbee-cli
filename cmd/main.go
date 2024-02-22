@@ -55,6 +55,7 @@ var Main = Command{
 		"version": versionCommand,
 		"login":   loginCommand,
 		"files":   filemanagerCommand,
+		"devices": devicesCommand,
 	},
 }
 
