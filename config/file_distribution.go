@@ -26,6 +26,7 @@ const FileDistributionBundle Bundle = "file_distribution"
 //	{
 //	 "files": [
 //	   {
+//	     "label": "my file set",
 //	     "pre_condition": "/tmp/test.sh",
 //	     "templates": [
 //	       {
@@ -52,6 +53,9 @@ type FileDistribution struct {
 
 // FileSet defines a file set to be maintained in the system.
 type FileSet struct {
+	// Label is an optional label for the file set.
+	Label string `json:"label,omitempty"`
+
 	// Files defines files to be created in the filesystem.
 	Files []File `json:"templates,omitempty"`
 
