@@ -160,6 +160,9 @@ type SystemInfo struct {
 
 	// AgentVersion version of the agent which is currently running on the device.
 	AgentVersion string `json:"cf_version"`
+
+	// TPMEnabled indicates if the agent uses TPM to seal its private key.
+	TPMEnabled bool `json:"tpm_enabled"`
 }
 
 // DeviceInventory represents basic device inventory information.
