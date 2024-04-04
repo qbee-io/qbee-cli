@@ -27,11 +27,11 @@ type FilesystemMount struct {
 	// Path is the mount point of the filesystem.
 	Path string `json:"path"`
 
-	// Used is the amount of used space in percent.
-	Used int64 `json:"used"`
+	// Available is the amount of available (free) disk space in kilobytes.
+	Available int64 `json:"avail"`
 
-	// Available is the amount of available space in kilobytes.
-	Available int64 `json:"available"`
+	// Utilization is the percentage of used disk space.
+	Utilization int64 `json:"util"`
 }
 
 // FilesystemSummary contains the summary of the filesystems on a device.
@@ -78,14 +78,14 @@ type MemorySummary struct {
 	// Reported contains unix timestamp of when the metric was recorded.
 	Reported int64 `json:"reported"`
 
-	// Free is the amount of free memory in kilobytes.
-	Free int64 `json:"free"`
+	// Available is the amount of available (free) memory in kilobytes.
+	Available int64 `json:"avail"`
 
-	// Utilization is the percentage of memory used.
+	// Used is the percentage of memory being used.
 	Utilization int64 `json:"util"`
 
-	// Swap is the amount of swap memory in kilobytes.
-	Swap int64 `json:"swap"`
+	// SwapUtilization is the percentage of swap being used.
+	SwapUtilization int64 `json:"swap"`
 }
 
 // MetricsSummary contains the summary of the metrics on a device.
