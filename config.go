@@ -76,3 +76,13 @@ func (cli *Client) GetConfigPreview(
 
 	return response.Config, nil
 }
+
+//config_payload=$(jq -rc --arg node_id "$node_id" --arg formtype "$form_type" '{"node_id":$node_id,"formtype":$formtype,"config":.}' < "$file_path")
+// UploadConfig uploads the configuration for the entity.
+
+const configPath = "/api/v2/change"
+
+func (cli *Client) UploadConfig(ctx context.Context) error {
+
+	return nil
+}
