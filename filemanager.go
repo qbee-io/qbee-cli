@@ -90,7 +90,7 @@ func (m *FileManager) Sync(ctx context.Context, source, dest string) error {
 			continue
 		}
 
-		if err := m.upload(ctx, uploadFile, source, dest); err != nil {
+		if err := m.upload(ctx, uploadFile, dest); err != nil {
 			return err
 		}
 	}
@@ -281,7 +281,7 @@ func (m *FileManager) snapshotRemote(ctx context.Context, remotePath string) err
 }
 
 // upload uploads the file to the FileManager.
-func (m *FileManager) upload(ctx context.Context, file File, sourcePath, destPath string) error {
+func (m *FileManager) upload(ctx context.Context, file File, destPath string) error {
 
 	// We do not upload directories
 	if file.IsDir {
