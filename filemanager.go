@@ -342,3 +342,36 @@ func getFileDigest(src string) (string, error) {
 
 	return hex.EncodeToString(digest.Sum(nil)), nil
 }
+
+// UploadFile uploads a file to the FileManager.
+func (m *FileManager) UploadFile(ctx context.Context, remotePath, localPath string, overwrite bool) error {
+	reader, err := os.Open(localPath)
+	if err != nil {
+		return err
+	}
+
+	defer reader.Close()
+
+	return m.client.UploadFileReplace(ctx, remotePath, localPath, overwrite, reader)
+}
+
+// DownloadFile downloads a file from the FileManager.
+func (m *FileManager) DownloadFile(ctx context.Context, remotePath, localPath string) error {
+	writer, err := os.Create(localPath)
+	if err != nil {
+		return err
+	}
+
+	defer writer.Close()
+
+	reader, err := m.client.DownloadFile(ctx, remotePath)
+
+	if err != nil {
+		return err
+	}
+
+	if _, err := io.Copy(writer, reader); err != nil {
+		return err
+	}
+	return nil
+}
