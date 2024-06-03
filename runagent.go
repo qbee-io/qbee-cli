@@ -47,13 +47,6 @@ func (m *RunAgentManager) WithAllowFailures(allow bool) *RunAgentManager {
 	return m
 }
 
-// RunAgentDevices is a response for the run agent devices request.
-type RunAgentDevices struct {
-	Items []struct {
-		NodeID string `json:"node_id"`
-	} `json:"items"`
-}
-
 // RunAgentDevice runs the agent on the device.
 func (m *RunAgentManager) RunAgentDevice(ctx context.Context, deviceID string) error {
 	err := m.runAgent(ctx, deviceID)
@@ -70,33 +63,37 @@ func (m *RunAgentManager) RunAgentDevice(ctx context.Context, deviceID string) e
 
 // RunAgentGroup runs the agent on all devices in the group.
 func (m *RunAgentManager) RunAgentGroup(ctx context.Context, groupID string) error {
-	path := fmt.Sprintf("/api/v2/inventory?search={\"ancestor_ids\":[\"%s\"]}", groupID)
 
-	var devices RunAgentDevices
-
-	if err := m.client.Call(ctx, http.MethodGet, path, nil, &devices); err != nil {
-		return err
+	query := InventoryListQuery{
+		Search: InventoryListSearch{
+			Ancestors: []string{groupID},
+		},
 	}
 
-	return m.runAgentMultiple(ctx, devices)
+	return m.runAgentMultiple(ctx, query)
 
 }
 
 // RunAgentTag runs the agent on all devices in the group with the specified tag.
 func (m *RunAgentManager) RunAgentTag(ctx context.Context, tag string) error {
-	path := fmt.Sprintf("/api/v2/inventory?search={\"tags\":[\"%s\"]}", tag)
-
-	var devices RunAgentDevices
-
-	if err := m.client.Call(ctx, http.MethodGet, path, nil, &devices); err != nil {
-		return err
+	query := InventoryListQuery{
+		Search: InventoryListSearch{
+			Tags: []string{tag},
+		},
 	}
 
-	return m.runAgentMultiple(ctx, devices)
+	return m.runAgentMultiple(ctx, query)
+
 }
 
 // runAgentMultiple runs the agent on multiple devices.
-func (m *RunAgentManager) runAgentMultiple(ctx context.Context, devices RunAgentDevices) error {
+func (m *RunAgentManager) runAgentMultiple(ctx context.Context, query InventoryListQuery) error {
+	devices, err := m.client.ListDeviceInventory(ctx, query)
+
+	if err != nil {
+		return err
+	}
+
 	if len(devices.Items) == 0 {
 		return fmt.Errorf("no devices found")
 	}
