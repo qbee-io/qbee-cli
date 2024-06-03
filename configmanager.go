@@ -27,6 +27,7 @@ import (
 	"go.qbee.io/client/config"
 )
 
+// ConfigurationManager is a configuration for uploads to config entities
 type ConfigurationManager struct {
 	// client is the ConfiguratinManager client.
 	client *Client

@@ -77,7 +77,7 @@ func (cli *Client) GetConfigPreview(
 	return response.Config, nil
 }
 
-// UploadConfig uploads the configuration for the entity.
+// ConfigPayload uploads the configuration for the entity.
 type ConfigPayload struct {
 	NodeID   string `json:"node_id,omitempty"`
 	FormType string `json:"formtype,omitempty"`
@@ -109,6 +109,7 @@ type CommitPayload struct {
 
 // commitPath is the path for the commit request.
 const commitPath = "/api/v2/commit"
+const actionCommit = "commit"
 
 // CommitConfig commits the configuration for the entity.
 func (cli *Client) CommitConfig(
@@ -117,7 +118,7 @@ func (cli *Client) CommitConfig(
 ) error {
 
 	payload := &CommitPayload{
-		Action:  "commit",
+		Action:  actionCommit,
 		Message: commitMessage,
 	}
 
