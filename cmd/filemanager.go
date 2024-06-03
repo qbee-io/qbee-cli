@@ -32,14 +32,17 @@ const (
 	fileManagerDryRynOption      = "dry-run"
 	fileManagerDeleteOption      = "delete"
 	fileManagerRecursiveOption   = "recursive"
+	fileManagerOverwriteOption   = "overwrite"
 )
 
 var filemanagerCommand = Command{
 	Description: "Filemanager commands",
 	SubCommands: map[string]Command{
-		"sync": fileManagerSyncCommand,
-		"rm":   fileManagerRemoveCommand,
-		"list": fileManagerListCommand,
+		"sync":     fileManagerSyncCommand,
+		"rm":       fileManagerRemoveCommand,
+		"list":     fileManagerListCommand,
+		"upload":   fileManagerUploadCommand,
+		"download": fileManagerDownloadCommand,
 	},
 }
 
@@ -185,6 +188,99 @@ var fileManagerRemoveCommand = Command{
 
 		startSync := time.Now()
 		if err := fileManager.Remove(ctx, remotePath, opts[fileManagerRecursiveOption] == "true"); err != nil {
+			return err
+		}
+		fmt.Printf("Time spent: %s\n", time.Since(startSync))
+		return nil
+	},
+}
+
+var fileManagerUploadCommand = Command{
+	Description: "Upload a file to the filemanager",
+	Options: []Option{
+		{
+			Name:     fileManagerSourceOption,
+			Short:    "s",
+			Help:     "Local source path",
+			Required: true,
+		},
+		{
+			Name:     fileManagerDestinationOption,
+			Short:    "d",
+			Help:     "Destination directory in the filemanager",
+			Required: true,
+		},
+		{
+			Name: fileManagerOverwriteOption,
+			Help: "Overwrite existing file",
+			Flag: "true",
+		},
+	},
+	Target: func(opts Options) error {
+
+		ctx := context.Background()
+
+		cli, err := client.LoginGetAuthenticatedClient(ctx)
+
+		if err != nil {
+			return err
+		}
+
+		fileManager := client.
+			NewFileManager().
+			WithClient(cli)
+
+		remotePath := path.Clean(opts[fileManagerDestinationOption])
+		localPath := filepath.Clean(opts[fileManagerSourceOption])
+
+		fmt.Printf("Uploading file %s to %s\n", localPath, remotePath)
+
+		startSync := time.Now()
+		if err := fileManager.UploadFile(ctx, remotePath, localPath, opts[fileManagerOverwriteOption] == "true"); err != nil {
+			return err
+		}
+		fmt.Printf("Time spent: %s\n", time.Since(startSync))
+		return nil
+	},
+}
+
+var fileManagerDownloadCommand = Command{
+	Description: "Download a file from the filemanager",
+	Options: []Option{
+		{
+			Name:     fileManagerSourceOption,
+			Short:    "s",
+			Help:     "Source path in the filemanager",
+			Required: true,
+		},
+		{
+			Name:     fileManagerDestinationOption,
+			Short:    "d",
+			Help:     "Local destination path",
+			Required: true,
+		},
+	},
+	Target: func(opts Options) error {
+
+		ctx := context.Background()
+
+		cli, err := client.LoginGetAuthenticatedClient(ctx)
+
+		if err != nil {
+			return err
+		}
+
+		fileManager := client.
+			NewFileManager().
+			WithClient(cli)
+
+		remotePath := path.Clean(opts[fileManagerSourceOption])
+		localPath := filepath.Clean(opts[fileManagerDestinationOption])
+
+		fmt.Printf("Downloading file %s to %s\n", remotePath, localPath)
+
+		startSync := time.Now()
+		if err := fileManager.DownloadFile(ctx, remotePath, localPath); err != nil {
 			return err
 		}
 		fmt.Printf("Time spent: %s\n", time.Since(startSync))
