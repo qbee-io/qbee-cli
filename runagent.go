@@ -22,6 +22,7 @@ import (
 	"net/http"
 )
 
+// RunAgentManager is a manager for running the agent on devices.
 type RunAgentManager struct {
 	// client is the RunAgentManager client.
 	client *Client
@@ -46,13 +47,14 @@ func (m *RunAgentManager) WithAllowFailures(allow bool) *RunAgentManager {
 	return m
 }
 
+// RunAgentDevices is a response for the run agent devices request.
 type RunAgentDevices struct {
 	Items []struct {
 		NodeID string `json:"node_id"`
 	} `json:"items"`
 }
 
-// RunAgent runs the agent on the device.
+// RunAgentDevice runs the agent on the device.
 func (m *RunAgentManager) RunAgentDevice(ctx context.Context, deviceID string) error {
 	err := m.runAgent(ctx, deviceID)
 	if err == nil {
