@@ -93,7 +93,7 @@ func (c *ConfigurationManager) Save(ctx context.Context, target, bundleName, con
 	}
 
 	configChange := Change{
-		BundleName: bundleName,
+		BundleName: config.Bundle(bundleName),
 		Config:     configData,
 	}
 

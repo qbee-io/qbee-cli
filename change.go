@@ -24,6 +24,8 @@ import (
 	"net/url"
 	"path"
 	"time"
+
+	"go.qbee.io/client/config"
 )
 
 // ChangeStatus defines the status of a change.
@@ -49,7 +51,7 @@ type Change struct {
 	SHA string `json:"sha"`
 
 	// BundleName is the name of the configuration bundle.
-	BundleName string `json:"formtype"`
+	BundleName config.Bundle `json:"formtype"`
 
 	// Extend defines if the change is an extension of the existing configuration.
 	Extend bool `json:"extend"`
