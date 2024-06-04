@@ -72,7 +72,7 @@ func (c *ConfigurationManager) WithEntityConfigScope(entityConfigScope config.En
 }
 
 // Save saves the configuration for the entity type.
-func (c *ConfigurationManager) Save(ctx context.Context, target, formType, configFile string) error {
+func (c *ConfigurationManager) Save(ctx context.Context, target, bundleName, configFile string) error {
 
 	var configBytes []byte
 	var err error
@@ -92,29 +92,30 @@ func (c *ConfigurationManager) Save(ctx context.Context, target, formType, confi
 		return err
 	}
 
-	configPayload := &ConfigPayload{
-		FormType: formType,
-		Config:   configData,
+	configChange := Change{
+		BundleName: bundleName,
+		Config:     configData,
 	}
 
 	if c.entityType == config.EntityTypeNode {
-		configPayload.NodeID = target
+		configChange.NodeID = target
 	} else if c.entityType == config.EntityTypeTag {
-		configPayload.Tag = target
+		configChange.Tag = target
 	} else {
 		return fmt.Errorf("invalid entity type: %s", c.entityType)
 	}
 
-	if err := c.client.UploadConfig(ctx, configPayload); err != nil {
+	if _, err = c.client.CreateConfigurationChange(ctx, configChange); err != nil {
 		return err
 	}
+
 	return nil
 
 }
 
 // Commit commits the configuration if there are uncommitted changes.
 func (c *ConfigurationManager) Commit(ctx context.Context, commitMessage string) error {
-	if err := c.client.CommitConfig(ctx, commitMessage); err != nil {
+	if _, err := c.client.CommitConfiguration(ctx, commitMessage); err != nil {
 		return err
 	}
 	return nil

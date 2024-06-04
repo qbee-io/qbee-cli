@@ -37,13 +37,13 @@ var configCommand = Command{
 }
 
 const (
-	configSaveConfigOption    = "config"
-	configNodeIDOption        = "node"
-	configTagIDOption         = "tag"
-	configSaveFormTypeOption  = "form-type"
-	configCommitMessageOption = "commit-message"
-	configSaveTemplateParams  = "template-parameters"
-	configShowScopeOption     = "scope"
+	configSaveConfigOption     = "config"
+	configNodeIDOption         = "node"
+	configTagIDOption          = "tag"
+	configSaveBundleNameOption = "bundle"
+	configCommitMessageOption  = "commit-message"
+	configSaveTemplateParams   = "template-parameters"
+	configShowScopeOption      = "scope"
 )
 
 var configCommitCommand = Command{
@@ -102,9 +102,9 @@ var configSaveCommand = Command{
 			Help:  "Tag name",
 		},
 		{
-			Name:     configSaveFormTypeOption,
-			Short:    "T",
-			Help:     "Form type",
+			Name:     configSaveBundleNameOption,
+			Short:    "b",
+			Help:     "Bundle name",
 			Required: true,
 		},
 		{
@@ -163,7 +163,7 @@ var configSaveCommand = Command{
 		err = configManager.Save(
 			ctx,
 			target,
-			opts[configSaveFormTypeOption],
+			opts[configSaveBundleNameOption],
 			opts[configSaveConfigOption],
 		)
 

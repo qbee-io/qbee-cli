@@ -24,8 +24,6 @@ import (
 	"net/url"
 	"path"
 	"time"
-
-	"go.qbee.io/client/types"
 )
 
 // ChangeStatus defines the status of a change.
@@ -39,52 +37,34 @@ const (
 	ChangeStatusCommitted ChangeStatus = "committed"
 )
 
-// Change in the system state.
+// Change to a single configuration bundle for a tag or a node.
 type Change struct {
-	// ID is the unique identifier of the change.
-	ID string `json:"id,omitempty"`
+	// NodeID is the ID of the node the change is for.
+	NodeID string `json:"node_id,omitempty"`
 
-	// Content is the type specific content of the change.
-	Content any `json:"content"`
+	// Tag is the tag the change is for.
+	Tag string `json:"tag,omitempty"`
 
-	// SHA is the pseudo-digest of the change.
+	// SHA is the digest of the change.
 	SHA string `json:"sha"`
 
-	// Status is the current status of the change.
-	Status ChangeStatus `json:"status"`
+	// BundleName is the name of the configuration bundle.
+	BundleName string `json:"formtype"`
 
-	// Type is the type of the change.
-	Type string `json:"type"`
+	// Extend defines if the change is an extension of the existing configuration.
+	Extend bool `json:"extend"`
 
-	// Created is the timestamp when the change was created.
-	Created types.Timestamp `json:"created"`
-
-	// Updated is the timestamp when the change was last updated.
-	Updated types.Timestamp `json:"updated"`
-
-	// UserID is the ID of the user who created the change.
-	UserID string `json:"user_id"`
-
-	// UserName is the first name and last name of the user who created the change.
-	// This field is populated by the API handlers.
-	UserName string `json:"user_name,omitempty"`
-
-	// User contains the user who created the change.
-	// This field is populated by the API handlers.
-	User *UserBaseInfo `json:"user,omitempty"`
-
-	// NodeInfo contains base information about the node that the change is associated with (if any).
-	// This field is populated by the API handlers.
-	NodeInfo *NodeInfo `json:"node,omitempty"`
+	// Config is the configuration of the change.
+	Config any `json:"config"`
 }
 
 const changePath = "/api/v2/change"
 
 // CreateConfigurationChange in the system.
-func (cli *Client) CreateConfigurationChange(ctx context.Context, change Change) (*Change, error) {
-	createdChange := new(Change)
+func (cli *Client) CreateConfigurationChange(ctx context.Context, change Change) (any, error) {
+	var createdChange any
 
-	err := cli.Call(ctx, http.MethodPost, changePath, change, createdChange)
+	err := cli.Call(ctx, http.MethodPost, changePath, change, &createdChange)
 	if err != nil {
 		return nil, err
 	}
