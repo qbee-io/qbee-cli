@@ -90,7 +90,7 @@ func (m *FileManager) Sync(ctx context.Context, source, dest string) error {
 			continue
 		}
 
-		if err := m.upload(ctx, uploadFile, source, dest); err != nil {
+		if err := m.upload(ctx, uploadFile, dest); err != nil {
 			return err
 		}
 	}
@@ -281,7 +281,7 @@ func (m *FileManager) snapshotRemote(ctx context.Context, remotePath string) err
 }
 
 // upload uploads the file to the FileManager.
-func (m *FileManager) upload(ctx context.Context, file File, sourcePath, destPath string) error {
+func (m *FileManager) upload(ctx context.Context, file File, destPath string) error {
 
 	// We do not upload directories
 	if file.IsDir {
@@ -341,4 +341,37 @@ func getFileDigest(src string) (string, error) {
 	}
 
 	return hex.EncodeToString(digest.Sum(nil)), nil
+}
+
+// UploadFile uploads a file to the FileManager.
+func (m *FileManager) UploadFile(ctx context.Context, remotePath, localPath string, overwrite bool) error {
+	reader, err := os.Open(localPath)
+	if err != nil {
+		return err
+	}
+
+	defer reader.Close()
+
+	return m.client.UploadFileReplace(ctx, remotePath, localPath, overwrite, reader)
+}
+
+// DownloadFile downloads a file from the FileManager.
+func (m *FileManager) DownloadFile(ctx context.Context, remotePath, localPath string) error {
+	writer, err := os.Create(localPath)
+	if err != nil {
+		return err
+	}
+
+	defer writer.Close()
+
+	reader, err := m.client.DownloadFile(ctx, remotePath)
+
+	if err != nil {
+		return err
+	}
+
+	if _, err := io.Copy(writer, reader); err != nil {
+		return err
+	}
+	return nil
 }
