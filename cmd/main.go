@@ -57,6 +57,7 @@ var Main = Command{
 		"files":   filemanagerCommand,
 		"devices": devicesCommand,
 		"config":  configCommand,
+		"run":     runAgentCommand,
 	},
 }
 
