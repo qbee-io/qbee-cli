@@ -16,9 +16,9 @@
 
 package config
 
-const DockerContainersBundle Bundle = "docker_containers"
+const PodmanContainersBundle Bundle = "podman_containers"
 
-// DockerContainers controls docker containers running in the system.
+// PodmanContainers controls podman containers running in the system.
 //
 // Example payload:
 //
@@ -27,7 +27,7 @@ const DockerContainersBundle Bundle = "docker_containers"
 //		  {
 //	     "name": "container-a",
 //	     "image": "debian:stable",
-//	     "docker_args": "-v /path/to/data-volume:/data --hostname my-hostname",
+//	     "podman_args": "-v /path/to/data-volume:/data --hostname my-hostname",
 //	     "env_file": "/my-directory/my-envfile",
 //	     "command": "echo 'hello world!'"
 //		  }
@@ -40,12 +40,12 @@ const DockerContainersBundle Bundle = "docker_containers"
 //	   }
 //	 ]
 //	}
-type DockerContainers struct {
+type PodmanContainers struct {
 	Metadata `bson:"-,inline"`
 
 	// Containers to be running in the system.
 	Containers []Container `json:"items,omitempty" bson:"items,omitempty"`
 
-	// RegistryAuths contains credentials to private docker registries.
+	// RegistryAuths contains credentials to private podman registries.
 	RegistryAuths []RegistryAuth `json:"registry_auths,omitempty" bson:"registry_auths,omitempty"`
 }
