@@ -94,7 +94,7 @@ var configSaveCommand = Command{
 		{
 			Name:  configNodeIDOption,
 			Short: "n",
-			Help:  "Node ID",
+			Help:  "Node ID (group or device)",
 		},
 		{
 			Name:  configTagIDOption,

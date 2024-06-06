@@ -92,9 +92,9 @@ func (c *ConfigurationManager) Save(ctx context.Context, target, bundleName, con
 		return err
 	}
 
-	configChange := Change{
+	configChange := ChangeRequest{
 		BundleName: config.Bundle(bundleName),
-		Config:     configData,
+		Content:    configData,
 	}
 
 	if c.entityType == config.EntityTypeNode {
