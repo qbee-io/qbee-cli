@@ -16,6 +16,7 @@
 
 package config
 
+// DockerContainersBundle is the internal label for the docker containers bundle.
 const DockerContainersBundle Bundle = "docker_containers"
 
 // DockerContainers controls docker containers running in the system.
@@ -40,6 +41,8 @@ const DockerContainersBundle Bundle = "docker_containers"
 //		  }
 //		]
 //	}
+
+// DockerContainers controls docker containers running in the system.
 type DockerContainers struct {
 	Metadata `bson:"-,inline"`
 

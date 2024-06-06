@@ -79,6 +79,7 @@ type Change struct {
 	NodeInfo *NodeInfo `json:"node,omitempty"`
 }
 
+// ChangeRequest is a request to create a change.
 type ChangeRequest struct {
 	// NodeID is the ID of the node the change is for.
 	NodeID string `json:"node_id,omitempty"`

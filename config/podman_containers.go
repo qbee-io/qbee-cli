@@ -16,6 +16,7 @@
 
 package config
 
+// PodmanContainersBundle is the internal label for the podman containers bundle.
 const PodmanContainersBundle Bundle = "podman_containers"
 
 // PodmanContainers controls podman containers running in the system.
@@ -40,6 +41,8 @@ const PodmanContainersBundle Bundle = "podman_containers"
 //		  }
 //		]
 //	}
+
+// PodmanContainers controls podman containers running in the system.
 type PodmanContainers struct {
 	Metadata `bson:"-,inline"`
 
