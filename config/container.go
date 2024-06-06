@@ -19,32 +19,32 @@ package config
 // Container defines a container instance.
 type Container struct {
 	// Name used by the container.
-	Name string `json:"name" bson:"name"`
+	Name string `json:"name"`
 
 	// Image used by the container.
-	Image string `json:"image" bson:"image"`
+	Image string `json:"image"`
 
 	// PodmanArgs defines command line arguments for "podman run".
-	DockerArgs string `json:"docker_args" bson:"dockers_args"`
+	DockerArgs string `json:"docker_args"`
 
 	// EnvFile defines an env file (from file manager) to be used inside container.
-	EnvFile string `json:"env_file" bson:"env_file"`
+	EnvFile string `json:"env_file"`
 
 	// Command to be executed in the container.
-	Command string `json:"command" bson:"command"`
+	Command string `json:"command"`
 
 	// PreCondition defines a condition that must be met before the container is started.
-	PreCondition string `json:"pre_condition" bson:"pre_condition"`
+	PreCondition string `json:"pre_condition"`
 }
 
 // RegistryAuth defines credentials for podman registry authentication.
 type RegistryAuth struct {
 	// Server hostname of the registry.
-	Server string `json:"server" bson:"server"`
+	Server string `json:"server"`
 
 	// Username for the registry.
-	Username string `json:"username" bson:"username"`
+	Username string `json:"username"`
 
 	// Password for the Username.
-	Password string `json:"password" bson:"password"`
+	Password string `json:"password"`
 }
