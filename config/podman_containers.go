@@ -25,20 +25,20 @@ const PodmanContainersBundle Bundle = "podman_containers"
 //	{
 //		"items": [
 //		  {
-//	     "name": "container-a",
-//	     "image": "debian:stable",
-//	     "podman_args": "-v /path/to/data-volume:/data --hostname my-hostname",
-//	     "env_file": "/my-directory/my-envfile",
-//	     "command": "echo 'hello world!'"
+//			"name": "container-a",
+//			"image": "debian:stable",
+//			"podman_args": "-v /path/to/data-volume:/data --hostname my-hostname",
+//			"env_file": "/my-directory/my-envfile",
+//			"command": "echo hello world!"
 //		  }
 //		],
-//	 "registry_auths": [
-//	   {
-//	      "server": "gcr.io",
-//	      "username": "user",
-//	      "password": "seCre7"
-//	   }
-//	 ]
+//		"registry_auths": [
+//		  {
+//			"server": "gcr.io",
+//			"username": "user",
+//			"password": "seCre7"
+//		  }
+//		]
 //	}
 type PodmanContainers struct {
 	Metadata `bson:"-,inline"`
