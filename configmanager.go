@@ -122,11 +122,7 @@ func (c *ConfigurationManager) Commit(ctx context.Context, commitMessage string)
 }
 
 // GetConfig returns the active configuration for the entity.
-func (c *ConfigurationManager) GetConfig(
-	ctx context.Context,
-	entityID string,
-) (*config.Config, error) {
-
+func (c *ConfigurationManager) GetConfig(ctx context.Context, entityID string) (*config.Config, error) {
 	return c.client.GetActiveConfig(ctx, c.entityType, entityID, c.entityConfigScope)
 }
 

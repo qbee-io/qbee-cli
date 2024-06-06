@@ -83,7 +83,7 @@ var configCommitCommand = Command{
 }
 
 var configSaveCommand = Command{
-	Description: "Apply a configuration",
+	Description: "Save a configuration",
 	Options: []Option{
 		{
 			Name:     configSaveConfigOption,
@@ -171,7 +171,7 @@ var configSaveCommand = Command{
 			return err
 		}
 
-		fmt.Println("Configuration applied successfully")
+		fmt.Println("Configuration saved successfully")
 		return nil
 	},
 }
