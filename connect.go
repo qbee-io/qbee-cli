@@ -33,7 +33,9 @@ import (
 	"go.qbee.io/transport"
 
 	chisel "github.com/jpillora/chisel/client"
+	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/net/http/httpproxy"
+	"golang.org/x/term"
 )
 
 const (
@@ -403,5 +405,125 @@ func (cli *Client) Connect(ctx context.Context, deviceID string, targets []Remot
 		return cli.connect(ctx, deviceStatus.UUID, deviceStatus.Edge, targets)
 	default:
 		return fmt.Errorf("unsupported edge version %d", deviceStatus.EdgeVersion)
+	}
+}
+
+// ConnectShell establishes a shell connection to a remote device.
+func (cli *Client) ConnectShell(ctx context.Context, deviceID string) error {
+
+	deviceStatus, err := cli.GetDeviceStatus(ctx, deviceID)
+	if err != nil {
+		return err
+	}
+
+	if !deviceStatus.RemoteAccess {
+		return fmt.Errorf("remote access is not available for device %s", deviceID)
+	}
+
+	edgeURL := fmt.Sprintf("https://%s/device/%s", deviceStatus.Edge, deviceStatus.UUID)
+
+	var tlsConfig *tls.Config
+
+	client, err := transport.NewClient(ctx, edgeURL, cli.authToken, tlsConfig)
+	if err != nil {
+		return fmt.Errorf("error initializing remote access client: %w", err)
+	}
+
+	// close the client and all local listeners when the context is cancelled
+	closers := []io.Closer{client}
+	defer func() {
+		for _, closer := range closers {
+			_ = closer.Close()
+		}
+	}()
+
+	fd := int(os.Stdin.Fd())
+	oldState, err := term.MakeRaw(fd)
+	if err != nil {
+		return fmt.Errorf("terminal make raw: %s", err)
+	}
+	defer term.Restore(fd, oldState)
+
+	w, h, err := terminal.GetSize(fd)
+	if err != nil {
+		return fmt.Errorf("terminal get size: %s", err)
+	}
+
+	var initCmd = &transport.PTYCommand{
+		Type:      transport.PTYCommandTypeResize,
+		SessionID: "",
+		Cols:      uint16(w),
+		Rows:      uint16(h),
+	}
+
+	payload, err := json.Marshal(initCmd)
+	if err != nil {
+		return fmt.Errorf("error marshaling initial window size: %w", err)
+	}
+
+	shellStream, err := client.OpenStream(ctx, transport.MessageTypePTY, payload)
+	if err != nil {
+		return fmt.Errorf("error opening shell stream: %w", err)
+	}
+	defer shellStream.Close()
+
+	// copy from stdin to stream
+
+	stdOutClosed := make(chan bool)
+	stdInClosed := make(chan bool)
+
+	go func() {
+		var buf [1024]byte
+		for {
+			n, err := os.Stdin.Read(buf[:])
+			if err != nil {
+				fmt.Printf("error reading from stdin: %s\n", err)
+				stdInClosed <- true
+				return
+			}
+			_, err = shellStream.Write(buf[:n])
+
+			if err != nil {
+				if err == io.EOF {
+					stdInClosed <- true
+					return
+				}
+				fmt.Printf("error writing to stream: %s\n", err)
+				stdInClosed <- true
+				return
+			}
+		}
+	}()
+
+	go func() {
+		var buf [1024]byte
+		for {
+			n, err := shellStream.Read(buf[:])
+			if err != nil {
+				if err == io.EOF {
+					stdOutClosed <- true
+					return
+				}
+				fmt.Printf("error reading from stream: %s\n", err)
+				stdOutClosed <- true
+				return
+			}
+			_, err = os.Stdout.Write(buf[:n])
+			if err != nil {
+				fmt.Printf("error writing to stdout: %s\n", err)
+				stdOutClosed <- true
+				return
+			}
+		}
+	}()
+	for {
+		select {
+		case <-ctx.Done():
+			return nil
+		case <-stdOutClosed:
+			return nil
+		case <-stdInClosed:
+			return nil
+		}
 	}
 }

@@ -31,6 +31,7 @@ const (
 	connectTargetOption     = "target"
 	connectConfigFileOption = "config"
 	connectAllowFailures    = "allow-failures"
+	connectShellOption      = "shell"
 )
 
 // Example config file:
@@ -74,6 +75,11 @@ var connectCommand = Command{
 			Help: "Allow one or more failures",
 			Flag: "true",
 		},
+		{
+			Name: connectShellOption,
+			Help: "Start a shell",
+			Flag: "true",
+		},
 	},
 	OptionsHandler: func(opts Options) error {
 		if opts[connectConfigFileOption] != "" {
@@ -82,6 +88,10 @@ var connectCommand = Command{
 
 		if opts[connectDeviceOption] == "" {
 			return fmt.Errorf("missing device ID")
+		}
+
+		if opts[connectShellOption] == "true" {
+			return nil
 		}
 
 		if opts[connectTargetOption] == "" {
@@ -97,6 +107,10 @@ var connectCommand = Command{
 		cli, err := client.LoginGetAuthenticatedClient(ctx)
 		if err != nil {
 			return err
+		}
+
+		if opts[connectShellOption] == "true" {
+			return cli.ConnectShell(ctx, opts[connectDeviceOption])
 		}
 
 		if opts[connectConfigFileOption] != "" {
