@@ -25,6 +25,7 @@ import (
 	"path"
 	"time"
 
+	"go.qbee.io/client/config"
 	"go.qbee.io/client/types"
 )
 
@@ -78,10 +79,28 @@ type Change struct {
 	NodeInfo *NodeInfo `json:"node,omitempty"`
 }
 
+// ChangeRequest is a request to create a change.
+type ChangeRequest struct {
+	// NodeID is the ID of the node the change is for.
+	NodeID string `json:"node_id,omitempty"`
+
+	// Tag is the tag the change is for.
+	Tag string `json:"tag,omitempty"`
+
+	// BundleName is the name of the configuration bundle.
+	BundleName config.Bundle `json:"formtype"`
+
+	// Extend defines if the change is an extension of the existing configuration.
+	Extend bool `json:"extend"`
+
+	// Content is the configuration of the change.
+	Content any `json:"config"`
+}
+
 const changePath = "/api/v2/change"
 
 // CreateConfigurationChange in the system.
-func (cli *Client) CreateConfigurationChange(ctx context.Context, change Change) (*Change, error) {
+func (cli *Client) CreateConfigurationChange(ctx context.Context, change ChangeRequest) (*Change, error) {
 	createdChange := new(Change)
 
 	err := cli.Call(ctx, http.MethodPost, changePath, change, createdChange)

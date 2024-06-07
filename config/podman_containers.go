@@ -16,10 +16,10 @@
 
 package config
 
-// DockerContainersBundle is the internal label for the docker containers bundle.
-const DockerContainersBundle Bundle = "docker_containers"
+// PodmanContainersBundle is the internal label for the podman containers bundle.
+const PodmanContainersBundle Bundle = "podman_containers"
 
-// DockerContainers controls docker containers running in the system.
+// PodmanContainers controls podman containers running in the system.
 //
 // Example payload:
 //
@@ -42,13 +42,13 @@ const DockerContainersBundle Bundle = "docker_containers"
 //		]
 //	}
 
-// DockerContainers controls docker containers running in the system.
-type DockerContainers struct {
+// PodmanContainers controls podman containers running in the system.
+type PodmanContainers struct {
 	Metadata `bson:"-,inline"`
 
 	// Containers to be running in the system.
 	Containers []Container `json:"items,omitempty" bson:"items,omitempty"`
 
-	// RegistryAuths contains credentials to private docker registries.
+	// RegistryAuths contains credentials to private podman registries.
 	RegistryAuths []RegistryAuth `json:"registry_auths,omitempty" bson:"registry_auths,omitempty"`
 }

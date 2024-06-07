@@ -65,6 +65,7 @@ type BundleData struct {
 	Parameters           *Parameters           `json:"parameters,omitempty"`
 	SoftwareManagement   *SoftwareManagement   `json:"software_management,omitempty"`
 	DockerContainers     *DockerContainers     `json:"docker_containers,omitempty"`
+	PodmanContainers     *PodmanContainers     `json:"podman_containers,omitempty"`
 	Password             *Password             `json:"password,omitempty"`
 	Firewall             *Firewall             `json:"firewall,omitempty"`
 	Rauc                 *Rauc                 `json:"rauc,omitempty"`
