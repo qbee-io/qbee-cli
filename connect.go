@@ -462,12 +462,13 @@ func (cli *Client) ConnectShell(ctx context.Context, deviceID string) error {
 	}
 
 	shellStream, err := client.OpenStream(ctx, transport.MessageTypePTY, payload)
+
 	if err != nil {
 		return fmt.Errorf("error opening shell stream: %w", err)
 	}
 	defer shellStream.Close()
 
-	// copy from stdin to stream
+	//go console.ResizeConsole(ctx, shellStream, "", fd, w, h)
 
 	stdOutClosed := make(chan bool)
 	stdInClosed := make(chan bool)
