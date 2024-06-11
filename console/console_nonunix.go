@@ -25,6 +25,6 @@ import (
 )
 
 // ResizeConsole resizes the terminal. On non-Unix systems this is a no-op.
-func ResizeConsole(ctx context.Context, shellStream *smux.Stream, sessionID string, termFD, width, height int) {
+func ResizeConsole(ctx context.Context, shellStream *smux.Session, sessionID string, termFD, width, height int) {
 	return
 }

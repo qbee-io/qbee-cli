@@ -30,6 +30,7 @@ import (
 	"sync"
 	"time"
 
+	"go.qbee.io/client/console"
 	"go.qbee.io/transport"
 
 	chisel "github.com/jpillora/chisel/client"
@@ -461,14 +462,15 @@ func (cli *Client) ConnectShell(ctx context.Context, deviceID string) error {
 		return fmt.Errorf("error marshaling initial window size: %w", err)
 	}
 
-	shellStream, err := client.OpenStream(ctx, transport.MessageTypePTY, payload)
+	shellStream, sessionIDBytes, err := client.OpenStreamPayload(ctx, transport.MessageTypePTY, payload)
 
 	if err != nil {
 		return fmt.Errorf("error opening shell stream: %w", err)
 	}
+
 	defer shellStream.Close()
 
-	//go console.ResizeConsole(ctx, shellStream, "", fd, w, h)
+	go console.ResizeConsole(ctx, client.GetSession(), string(sessionIDBytes), fd, w, h)
 
 	stdOutClosed := make(chan bool)
 	stdInClosed := make(chan bool)

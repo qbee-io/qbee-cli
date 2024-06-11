@@ -32,7 +32,7 @@ import (
 )
 
 // ResizeConsole resizes the terminal. On non-Unix systems this is a no-op.
-func ResizeConsole(ctx context.Context, shellStream *smux.Stream, sessionID string, termFD, width, height int) {
+func ResizeConsole(ctx context.Context, session *smux.Session, sessionID string, termFD, width, height int) {
 
 	windowChange := make(chan os.Signal, 1)
 	signal.Notify(windowChange, syscall.SIGWINCH)
@@ -54,14 +54,20 @@ func ResizeConsole(ctx context.Context, shellStream *smux.Stream, sessionID stri
 					Cols:      uint16(width),
 					Rows:      uint16(height),
 				}
+
+				shellStream, err := session.OpenStream()
+				if err != nil {
+					fmt.Printf("error opening shell stream: %s\n", err)
+					return
+				}
+
 				var payload []byte
-				var err error
 				if payload, err = json.Marshal(cmd); err != nil {
 					fmt.Printf("error marshaling window resize command: %s\n", err)
 					return
 				}
 
-				if err := transport.WriteMessage(shellStream, transport.MessageTypePTY, payload); err != nil {
+				if err := transport.WriteMessage(shellStream, transport.MessageTypePTYCommand, payload); err != nil {
 					fmt.Printf("error writing window resize command: %s\n", err)
 					return
 				}
