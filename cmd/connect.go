@@ -32,6 +32,7 @@ const (
 	connectConfigFileOption = "config"
 	connectAllowFailures    = "allow-failures"
 	connectShellOption      = "shell"
+	connectCommandOption    = "command"
 )
 
 // Example config file:
@@ -80,6 +81,10 @@ var connectCommand = Command{
 			Help: "Start a shell",
 			Flag: "true",
 		},
+		{
+			Name: connectCommandOption,
+			Help: "Run a command",
+		},
 	},
 	OptionsHandler: func(opts Options) error {
 		if opts[connectConfigFileOption] != "" {
@@ -110,7 +115,7 @@ var connectCommand = Command{
 		}
 
 		if opts[connectShellOption] == "true" {
-			return cli.ConnectShell(ctx, opts[connectDeviceOption])
+			return cli.ConnectShell(ctx, opts[connectDeviceOption], opts[connectCommandOption])
 		}
 
 		if opts[connectConfigFileOption] != "" {
