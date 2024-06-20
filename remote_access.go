@@ -43,11 +43,15 @@ type RemoteAccessTarget struct {
 	// Can be either "tcp" or "udp".
 	Protocol string
 
-	// RemoteHost is the host of the remote machine to which the local port is forwarded.
-	RemoteHost string
+	// LocalHost is the address on which the local port is bound.
+	// Set to "localhost" to bind to the loopback interface.
+	LocalHost string
 
 	// LocalPort is the port on the local machine to which the remote port is forwarded.
 	LocalPort string
+
+	// RemoteHost is the host of the remote machine to which the local port is forwarded.
+	RemoteHost string
 
 	// RemotePort is the port on the remote machine to which the local port is forwarded.
 	RemotePort string
@@ -72,26 +76,43 @@ func IsValidDeviceID(deviceID string) bool {
 
 // ParseRemoteAccessTarget parses a remote access target string.
 // The target string has the following format:
-// <local_port>:<remote_host>:<remote_port>[/udp]
+// [<local_host>:]<local_port>:<remote_host>:<remote_port>[/udp]
 func ParseRemoteAccessTarget(targetString string) (RemoteAccessTarget, error) {
 	target := RemoteAccessTarget{}
 
 	// Split the target string into its parts.
 	parts := strings.Split(targetString, ":")
 
-	if len(parts) != 3 {
+	if len(parts) != 3 && len(parts) != 4 {
 		return target, fmt.Errorf("invalid format")
 	}
 
 	var err error
 
-	if target.LocalPort, err = parseLocalNetworkPort(parts[0]); err != nil {
+	var localHost string
+	var localPort string
+	var remoteHost string
+	var remotePort string
+
+	if len(parts) == 3 {
+		localHost = "127.0.0.1"
+		localPort = parts[0]
+		remoteHost = parts[1]
+		remotePort = parts[2]
+	} else {
+		localHost = parts[0]
+		localPort = parts[1]
+		remoteHost = parts[2]
+		remotePort = parts[3]
+	}
+
+	target.LocalHost = localHost
+	target.RemoteHost = remoteHost
+
+	if target.LocalPort, err = parseLocalNetworkPort(localPort); err != nil {
 		return target, fmt.Errorf("invalid local port: %w", err)
 	}
 
-	target.RemoteHost = parts[1]
-
-	remotePort := parts[2]
 	if strings.HasSuffix(remotePort, "/udp") {
 		target.Protocol = UDP
 		remotePort = strings.TrimSuffix(remotePort, "/udp")
@@ -108,7 +129,7 @@ func ParseRemoteAccessTarget(targetString string) (RemoteAccessTarget, error) {
 
 // String returns the string representation of a remote access target.
 func (target RemoteAccessTarget) String() string {
-	base := fmt.Sprintf("%s:%s:%s", target.LocalPort, target.RemoteHost, target.RemotePort)
+	base := fmt.Sprintf("%s:%s:%s:%s", target.LocalHost, target.LocalPort, target.RemoteHost, target.RemotePort)
 
 	if target.Protocol == UDP {
 		return base + "/udp"

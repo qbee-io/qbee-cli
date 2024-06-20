@@ -287,7 +287,7 @@ func (cli *Client) connect(ctx context.Context, deviceUUID, edgeHost string, tar
 			return fmt.Errorf("stdio is only supported for single target connections")
 		}
 
-		localHostPort := fmt.Sprintf("localhost:%s", target.LocalPort)
+		localHostPort := fmt.Sprintf("%s:%s", target.LocalHost, target.LocalPort)
 		remoteHostPort := fmt.Sprintf("%s:%s", target.RemoteHost, target.RemotePort)
 
 		switch target.Protocol {
