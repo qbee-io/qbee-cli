@@ -5,7 +5,7 @@ go 1.21
 require (
 	github.com/jpillora/chisel v1.9.1
 	github.com/xtaci/smux v1.5.24
-	go.qbee.io/transport v1.24.8
+	go.qbee.io/transport v1.24.27
 	golang.org/x/crypto v0.21.0
 	golang.org/x/net v0.23.0
 	golang.org/x/term v0.18.0
@@ -21,5 +21,3 @@ require (
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 )
-
-replace go.qbee.io/transport => ../transport
