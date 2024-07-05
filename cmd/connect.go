@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 
 	"go.qbee.io/client"
@@ -94,6 +95,9 @@ var connectCommand = Command{
 		}
 
 		if opts[connectTerminalOption] == "true" {
+			if runtime.GOOS == "windows" {
+				return fmt.Errorf("terminal currently not supported on Windows")
+			}
 			return nil
 		}
 
