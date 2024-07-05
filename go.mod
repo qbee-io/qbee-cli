@@ -7,7 +7,7 @@ require (
 	github.com/xtaci/smux v1.5.24
 	go.qbee.io/transport v1.24.27
 	golang.org/x/net v0.23.0
-	golang.org/x/term v0.18.0
+	golang.org/x/term v0.22.0
 )
 
 require (
@@ -18,6 +18,6 @@ require (
 	github.com/jpillora/sizestr v1.0.0 // indirect
 	golang.org/x/crypto v0.21.0 // indirect
 	golang.org/x/sync v0.6.0 // indirect
-	golang.org/x/sys v0.18.0 // indirect
+	golang.org/x/sys v0.22.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 )
