@@ -34,7 +34,6 @@ import (
 	"go.qbee.io/transport"
 
 	chisel "github.com/jpillora/chisel/client"
-	"golang.org/x/crypto/ssh/terminal"
 	"golang.org/x/net/http/httpproxy"
 	"golang.org/x/term"
 )
@@ -443,9 +442,15 @@ func (cli *Client) ConnectTerminal(ctx context.Context, deviceID string) error {
 	if err != nil {
 		return fmt.Errorf("terminal make raw: %s", err)
 	}
-	defer term.Restore(fd, oldState)
 
-	w, h, err := terminal.GetSize(fd)
+	defer func() {
+		err := term.Restore(fd, oldState)
+		if err != nil {
+			fmt.Printf("error restoring terminal state: %s\n", err)
+		}
+	}()
+
+	w, h, err := term.GetSize(fd)
 	if err != nil {
 		return fmt.Errorf("terminal get size: %s", err)
 	}
