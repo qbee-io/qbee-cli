@@ -409,8 +409,8 @@ func (cli *Client) Connect(ctx context.Context, deviceID string, targets []Remot
 	}
 }
 
-// ConnectShell establishes a shell connection to a remote device.
-func (cli *Client) ConnectShell(ctx context.Context, deviceID, command string) error {
+// ConnectTerminal establishes a shell connection to a remote device.
+func (cli *Client) ConnectTerminal(ctx context.Context, deviceID string) error {
 
 	deviceStatus, err := cli.GetDeviceStatus(ctx, deviceID)
 	if err != nil {
@@ -519,13 +519,6 @@ func (cli *Client) ConnectShell(ctx context.Context, deviceID, command string) e
 			}
 		}
 	}()
-
-	if command != "" {
-		_, err = shellStream.Write([]byte(command + ";exit\n"))
-		if err != nil {
-			return fmt.Errorf("error writing command to stream: %w", err)
-		}
-	}
 
 	for {
 		select {

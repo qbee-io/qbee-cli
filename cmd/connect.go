@@ -31,8 +31,9 @@ const (
 	connectTargetOption     = "target"
 	connectConfigFileOption = "config"
 	connectAllowFailures    = "allow-failures"
-	connectShellOption      = "shell"
+	connectTerminalOption   = "terminal"
 	connectCommandOption    = "command"
+	terminalOption          = "terminal"
 )
 
 // Example config file:
@@ -77,13 +78,10 @@ var connectCommand = Command{
 			Flag: "true",
 		},
 		{
-			Name: connectShellOption,
-			Help: "Start a shell",
-			Flag: "true",
-		},
-		{
-			Name: connectCommandOption,
-			Help: "Run a command",
+			Name:  connectTerminalOption,
+			Short: "T",
+			Help:  "Start a terminal session",
+			Flag:  "true",
 		},
 	},
 	OptionsHandler: func(opts Options) error {
@@ -95,7 +93,7 @@ var connectCommand = Command{
 			return fmt.Errorf("missing device ID")
 		}
 
-		if opts[connectShellOption] == "true" {
+		if opts[connectTerminalOption] == "true" {
 			return nil
 		}
 
@@ -114,8 +112,8 @@ var connectCommand = Command{
 			return err
 		}
 
-		if opts[connectShellOption] == "true" {
-			return cli.ConnectShell(ctx, opts[connectDeviceOption], opts[connectCommandOption])
+		if opts[connectTerminalOption] == "true" {
+			return cli.ConnectTerminal(ctx, opts[connectDeviceOption])
 		}
 
 		if opts[connectConfigFileOption] != "" {
