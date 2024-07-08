@@ -25,7 +25,8 @@ import (
 )
 
 const (
-	shellDeviceOption = "device"
+	shellDeviceOption  = "device"
+	shellCommandOption = "command"
 )
 
 var shellCommand = Command{
@@ -36,6 +37,12 @@ var shellCommand = Command{
 			Short:    "d",
 			Help:     "Device ID",
 			Required: true,
+		},
+		{
+			Name:     shellCommandOption,
+			Short:    "c",
+			Help:     "Command to execute as comma-separated list of arguments",
+			Required: false,
 		},
 	},
 	Target: func(opts Options) error {
@@ -50,7 +57,7 @@ var shellCommand = Command{
 		}
 
 		deviceID := opts[shellDeviceOption]
-		if err := cli.ConnectShell(ctx, deviceID); err != nil {
+		if err := cli.ConnectShell(ctx, deviceID, opts[shellCommandOption]); err != nil {
 			return err
 		}
 

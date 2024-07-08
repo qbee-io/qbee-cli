@@ -409,7 +409,7 @@ func (cli *Client) Connect(ctx context.Context, deviceID string, targets []Remot
 }
 
 // ConnectShell establishes a shell connection to a remote device.
-func (cli *Client) ConnectShell(ctx context.Context, deviceID string) error {
+func (cli *Client) ConnectShell(ctx context.Context, deviceID, command string) error {
 
 	deviceStatus, err := cli.GetDeviceStatus(ctx, deviceID)
 	if err != nil {
@@ -460,6 +460,15 @@ func (cli *Client) ConnectShell(ctx context.Context, deviceID string) error {
 		SessionID: "",
 		Cols:      uint16(w),
 		Rows:      uint16(h),
+	}
+
+	if command != "" {
+		cmd := strings.Split(strings.TrimSpace(command), ",")
+		initCmd.Command = cmd[0]
+
+		if len(cmd) > 1 {
+			initCmd.CommandArgs = cmd[1:]
+		}
 	}
 
 	payload, err := json.Marshal(initCmd)
@@ -535,4 +544,62 @@ func (cli *Client) ConnectShell(ctx context.Context, deviceID string) error {
 			return nil
 		}
 	}
+}
+
+// ExecuteCommand executes a command on a remote device.
+func (cli *Client) ExecuteCommand(ctx context.Context, deviceID, command string) error {
+	deviceStatus, err := cli.GetDeviceStatus(ctx, deviceID)
+	if err != nil {
+		return err
+	}
+
+	if !deviceStatus.RemoteAccess {
+		return fmt.Errorf("remote access is not available for device %s", deviceID)
+	}
+
+	edgeURL := fmt.Sprintf("https://%s/device/%s", deviceStatus.Edge, deviceStatus.UUID)
+
+	var tlsConfig *tls.Config
+
+	client, err := transport.NewClient(ctx, edgeURL, cli.authToken, tlsConfig)
+	if err != nil {
+		return fmt.Errorf("error initializing remote access client: %w", err)
+	}
+
+	// close the client and all local listeners when the context is cancelled
+	closers := []io.Closer{client}
+	defer func() {
+		for _, closer := range closers {
+			_ = closer.Close()
+		}
+	}()
+
+	var initCmd = &transport.Command{
+		SessionID: "",
+	}
+
+	cmd := strings.Split(strings.TrimSpace(command), ",")
+	initCmd.Command = cmd[0]
+
+	if len(cmd) > 1 {
+		initCmd.CommandArgs = cmd[1:]
+	}
+
+	payload, err := json.Marshal(initCmd)
+	if err != nil {
+		return fmt.Errorf("error marshaling initial window size: %w", err)
+	}
+
+	shellStream, output, err := client.OpenStreamPayload(ctx, transport.MessageTypeCommand, payload)
+
+	if err != nil {
+		return fmt.Errorf("error opening shell stream: %w", err)
+	}
+	defer shellStream.Close()
+
+	_, err = os.Stdout.Write(output)
+	if err != nil {
+		return fmt.Errorf("error writing to stdout: %w", err)
+	}
+	return nil
 }
