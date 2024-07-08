@@ -21,7 +21,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
-	"runtime"
 	"strings"
 
 	"go.qbee.io/client"
@@ -32,9 +31,6 @@ const (
 	connectTargetOption     = "target"
 	connectConfigFileOption = "config"
 	connectAllowFailures    = "allow-failures"
-	connectTerminalOption   = "terminal"
-	connectCommandOption    = "command"
-	terminalOption          = "terminal"
 )
 
 // Example config file:
@@ -78,12 +74,6 @@ var connectCommand = Command{
 			Help: "Allow one or more failures",
 			Flag: "true",
 		},
-		{
-			Name:  connectTerminalOption,
-			Short: "T",
-			Help:  "Start a terminal session",
-			Flag:  "true",
-		},
 	},
 	OptionsHandler: func(opts Options) error {
 		if opts[connectConfigFileOption] != "" {
@@ -92,13 +82,6 @@ var connectCommand = Command{
 
 		if opts[connectDeviceOption] == "" {
 			return fmt.Errorf("missing device ID")
-		}
-
-		if opts[connectTerminalOption] == "true" {
-			if runtime.GOOS == "windows" {
-				return fmt.Errorf("terminal currently not supported on Windows")
-			}
-			return nil
 		}
 
 		if opts[connectTargetOption] == "" {
@@ -114,10 +97,6 @@ var connectCommand = Command{
 		cli, err := client.LoginGetAuthenticatedClient(ctx)
 		if err != nil {
 			return err
-		}
-
-		if opts[connectTerminalOption] == "true" {
-			return cli.ConnectTerminal(ctx, opts[connectDeviceOption])
 		}
 
 		if opts[connectConfigFileOption] != "" {

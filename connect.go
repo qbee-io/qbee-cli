@@ -408,8 +408,8 @@ func (cli *Client) Connect(ctx context.Context, deviceID string, targets []Remot
 	}
 }
 
-// ConnectTerminal establishes a shell connection to a remote device.
-func (cli *Client) ConnectTerminal(ctx context.Context, deviceID string) error {
+// ConnectShell establishes a shell connection to a remote device.
+func (cli *Client) ConnectShell(ctx context.Context, deviceID string) error {
 
 	deviceStatus, err := cli.GetDeviceStatus(ctx, deviceID)
 	if err != nil {
