@@ -18,6 +18,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"runtime"
 
@@ -41,7 +42,7 @@ var shellCommand = Command{
 		{
 			Name:     shellCommandOption,
 			Short:    "c",
-			Help:     "Command to execute as comma-separated list of arguments",
+			Help:     "Command to execute as JSON string",
 			Required: false,
 		},
 	},
@@ -56,8 +57,16 @@ var shellCommand = Command{
 			return fmt.Errorf("shell is not supported on Windows")
 		}
 
+		var cmd []string
+
+		if opts[shellCommandOption] != "" {
+			if err := json.Unmarshal([]byte(opts[shellCommandOption]), &cmd); err != nil {
+				return err
+			}
+		}
+
 		deviceID := opts[shellDeviceOption]
-		if err := cli.ConnectShell(ctx, deviceID, opts[shellCommandOption]); err != nil {
+		if err := cli.ConnectShell(ctx, deviceID, cmd); err != nil {
 			return err
 		}
 
