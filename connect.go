@@ -583,6 +583,9 @@ func (cli *Client) executeCommandStream(ctx context.Context, writer io.Writer, d
 
 	select {
 	case <-ctx.Done():
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
 		return nil
 	case err := <-errChan:
 		if err != nil {
@@ -604,7 +607,6 @@ func readerLoop(in io.Reader, out io.Writer, errChan chan error) {
 				errChan <- nil
 				return
 			}
-			fmt.Printf("error reading from stream: %s\n", err)
 			errChan <- err
 			return
 		}
