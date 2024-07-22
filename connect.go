@@ -17,6 +17,7 @@
 package client
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
 	"encoding/json"
@@ -250,6 +251,35 @@ func (cli *Client) connectStdio(ctx context.Context, client *transport.Client, t
 	return err
 }
 
+// getConnectClient gets a transport client for the device connection
+func (cli *Client) getConnectClient(ctx context.Context, deviceID string) (*transport.Client, error) {
+	deviceStatus, err := cli.GetDeviceStatus(ctx, deviceID)
+	if err != nil {
+		return nil, err
+	}
+
+	if !deviceStatus.RemoteAccess {
+		return nil, fmt.Errorf("remote access is not available for device %s", deviceID)
+	}
+
+	edgeURL := fmt.Sprintf("https://%s/device/%s", deviceStatus.Edge, deviceStatus.UUID)
+
+	var tlsConfig *tls.Config
+
+	if strings.HasPrefix(deviceStatus.Edge, "edge:") || strings.HasPrefix(deviceStatus.Edge, "localhost:") {
+		tlsConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	}
+
+	client, err := transport.NewClient(ctx, edgeURL, cli.authToken, tlsConfig)
+	if err != nil {
+		return nil, fmt.Errorf("error initializing remote access client: %w", err)
+	}
+
+	return client, nil
+}
+
 // connect establishes a connection to a remote device.
 func (cli *Client) connect(ctx context.Context, deviceUUID, edgeHost string, targets []RemoteAccessTarget) error {
 	edgeURL := fmt.Sprintf("https://%s/device/%s", edgeHost, deviceUUID)
@@ -409,33 +439,7 @@ func (cli *Client) Connect(ctx context.Context, deviceID string, targets []Remot
 }
 
 // ConnectShell establishes a shell connection to a remote device.
-func (cli *Client) ConnectShell(ctx context.Context, deviceID, command string) error {
-
-	deviceStatus, err := cli.GetDeviceStatus(ctx, deviceID)
-	if err != nil {
-		return err
-	}
-
-	if !deviceStatus.RemoteAccess {
-		return fmt.Errorf("remote access is not available for device %s", deviceID)
-	}
-
-	edgeURL := fmt.Sprintf("https://%s/device/%s", deviceStatus.Edge, deviceStatus.UUID)
-
-	var tlsConfig *tls.Config
-
-	client, err := transport.NewClient(ctx, edgeURL, cli.authToken, tlsConfig)
-	if err != nil {
-		return fmt.Errorf("error initializing remote access client: %w", err)
-	}
-
-	// close the client and all local listeners when the context is cancelled
-	closers := []io.Closer{client}
-	defer func() {
-		for _, closer := range closers {
-			_ = closer.Close()
-		}
-	}()
+func (cli *Client) ConnectShell(ctx context.Context, deviceID string, command []string) error {
 
 	fd := int(os.Stdin.Fd())
 	oldState, err := term.MakeRaw(fd)
@@ -462,14 +466,26 @@ func (cli *Client) ConnectShell(ctx context.Context, deviceID, command string) e
 		Rows:      uint16(h),
 	}
 
-	if command != "" {
-		cmd := strings.Split(strings.TrimSpace(command), ",")
-		initCmd.Command = cmd[0]
+	if command != nil {
+		initCmd.Command = command[0]
 
-		if len(cmd) > 1 {
-			initCmd.CommandArgs = cmd[1:]
+		if len(command) > 1 {
+			initCmd.CommandArgs = command[1:]
 		}
 	}
+
+	client, err := cli.getConnectClient(ctx, deviceID)
+	if err != nil {
+		return err
+	}
+
+	// close the client and all local listeners when the context is cancelled
+	closers := []io.Closer{client}
+	defer func() {
+		for _, closer := range closers {
+			_ = closer.Close()
+		}
+	}()
 
 	payload, err := json.Marshal(initCmd)
 	if err != nil {
@@ -486,84 +502,47 @@ func (cli *Client) ConnectShell(ctx context.Context, deviceID, command string) e
 
 	go console.ResizeConsole(ctx, client.GetSession(), string(sessionIDBytes), fd, w, h)
 
-	stdOutClosed := make(chan bool)
-	stdInClosed := make(chan bool)
+	errChan := make(chan error)
 
-	go func() {
-		var buf [1024]byte
-		for {
-			n, err := os.Stdin.Read(buf[:])
-			if err != nil {
-				fmt.Printf("error reading from stdin: %s\n", err)
-				stdInClosed <- true
-				return
-			}
-			_, err = shellStream.Write(buf[:n])
+	go readerLoop(shellStream, os.Stdout, errChan)
+	go readerLoop(os.Stdin, shellStream, errChan)
 
-			if err != nil {
-				if err == io.EOF {
-					stdInClosed <- true
-					return
-				}
-				fmt.Printf("error writing to stream: %s\n", err)
-				stdInClosed <- true
-				return
-			}
+	select {
+	case <-ctx.Done():
+		return nil
+	case err := <-errChan:
+		if err != nil {
+			return err
 		}
-	}()
-
-	go func() {
-		var buf [1024]byte
-		for {
-			n, err := shellStream.Read(buf[:])
-			if err != nil {
-				if err == io.EOF {
-					stdOutClosed <- true
-					return
-				}
-				fmt.Printf("error reading from stream: %s\n", err)
-				stdOutClosed <- true
-				return
-			}
-			_, err = os.Stdout.Write(buf[:n])
-			if err != nil {
-				fmt.Printf("error writing to stdout: %s\n", err)
-				stdOutClosed <- true
-				return
-			}
-		}
-	}()
-
-	for {
-		select {
-		case <-ctx.Done():
-			return nil
-		case <-stdOutClosed:
-			return nil
-		case <-stdInClosed:
-			return nil
-		}
+		return nil
 	}
 }
 
+// ExecuteCommand executes a command on a remote device and writes the output to stdout.
+func (cli *Client) ExecuteCommand(ctx context.Context, deviceID string, command []string) error {
+	var buf [1024]byte
+	buffer := bytes.NewBuffer(buf[:])
+
+	if err := cli.executeCommandStream(ctx, buffer, deviceID, command); err != nil {
+		return fmt.Errorf("error executing command: %w", err)
+	}
+	if _, err := os.Stdout.Write(buffer.Bytes()); err != nil {
+		return fmt.Errorf("error writing to stdout: %w", err)
+	}
+	return nil
+}
+
+// ExecuteCommandStream executes a command on a remote device and streams the output to stdout.
+func (cli *Client) ExecuteCommandStream(ctx context.Context, deviceID string, command []string) error {
+	return cli.executeCommandStream(ctx, os.Stdout, deviceID, command)
+}
+
 // ExecuteCommand executes a command on a remote device.
-func (cli *Client) ExecuteCommand(ctx context.Context, deviceID, command string) error {
-	deviceStatus, err := cli.GetDeviceStatus(ctx, deviceID)
+func (cli *Client) executeCommandStream(ctx context.Context, writer io.Writer, deviceID string, command []string) error {
+
+	client, err := cli.getConnectClient(ctx, deviceID)
 	if err != nil {
 		return err
-	}
-
-	if !deviceStatus.RemoteAccess {
-		return fmt.Errorf("remote access is not available for device %s", deviceID)
-	}
-
-	edgeURL := fmt.Sprintf("https://%s/device/%s", deviceStatus.Edge, deviceStatus.UUID)
-
-	var tlsConfig *tls.Config
-
-	client, err := transport.NewClient(ctx, edgeURL, cli.authToken, tlsConfig)
-	if err != nil {
-		return fmt.Errorf("error initializing remote access client: %w", err)
 	}
 
 	// close the client and all local listeners when the context is cancelled
@@ -578,11 +557,12 @@ func (cli *Client) ExecuteCommand(ctx context.Context, deviceID, command string)
 		SessionID: "",
 	}
 
-	cmd := strings.Split(strings.TrimSpace(command), ",")
-	initCmd.Command = cmd[0]
+	if command != nil {
+		initCmd.Command = command[0]
 
-	if len(cmd) > 1 {
-		initCmd.CommandArgs = cmd[1:]
+		if len(command) > 1 {
+			initCmd.CommandArgs = command[1:]
+		}
 	}
 
 	payload, err := json.Marshal(initCmd)
@@ -590,16 +570,48 @@ func (cli *Client) ExecuteCommand(ctx context.Context, deviceID, command string)
 		return fmt.Errorf("error marshaling initial window size: %w", err)
 	}
 
-	shellStream, output, err := client.OpenStreamPayload(ctx, transport.MessageTypeCommand, payload)
+	shellStream, _, err := client.OpenStreamPayload(ctx, transport.MessageTypeCommand, payload)
 
 	if err != nil {
 		return fmt.Errorf("error opening shell stream: %w", err)
 	}
 	defer shellStream.Close()
 
-	_, err = os.Stdout.Write(output)
-	if err != nil {
-		return fmt.Errorf("error writing to stdout: %w", err)
+	errChan := make(chan error)
+
+	go readerLoop(shellStream, writer, errChan)
+
+	select {
+	case <-ctx.Done():
+		return nil
+	case err := <-errChan:
+		if err != nil {
+			return err
+		}
+		return nil
 	}
-	return nil
+
+}
+
+// readerLoop reads from the stream and writes to the console.
+func readerLoop(in io.Reader, out io.Writer, errChan chan error) {
+	var buf [1024]byte
+
+	for {
+		n, err := in.Read(buf[:])
+		if err != nil {
+			if err == io.EOF {
+				errChan <- nil
+				return
+			}
+			fmt.Printf("error reading from stream: %s\n", err)
+			errChan <- err
+			return
+		}
+		_, err = out.Write(buf[:n])
+		if err != nil {
+			errChan <- err
+			return
+		}
+	}
 }

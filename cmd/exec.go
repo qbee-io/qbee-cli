@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 
 	"go.qbee.io/client"
 )
@@ -23,7 +24,7 @@ var execCommand = Command{
 		{
 			Name:     execCommandOption,
 			Short:    "c",
-			Help:     "Command to execute",
+			Help:     "Command to execute as JSON string",
 			Required: true,
 		},
 	},
@@ -36,7 +37,14 @@ var execCommand = Command{
 
 		deviceID := opts[execDeviceOption]
 		command := opts[execCommandOption]
-		if err := cli.ExecuteCommand(ctx, deviceID, command); err != nil {
+
+		var cmd []string
+
+		if err := json.Unmarshal([]byte(command), &cmd); err != nil {
+			return err
+		}
+
+		if err := cli.ExecuteCommandStream(ctx, deviceID, cmd); err != nil {
 			return err
 		}
 
