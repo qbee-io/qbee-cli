@@ -27,6 +27,7 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -596,6 +597,8 @@ func (cli *Client) executeCommandStream(ctx context.Context, writer io.Writer, d
 
 }
 
+var exitValueRE = regexp.MustCompile(`exit status (\d+)`)
+
 // readerLoop reads from the stream and writes to the console.
 func readerLoop(in io.Reader, out io.Writer, errChan chan error) {
 	var buf [1024]byte
@@ -610,10 +613,17 @@ func readerLoop(in io.Reader, out io.Writer, errChan chan error) {
 			errChan <- err
 			return
 		}
+
+		if exitValueRE.Match(buf[:n]) {
+			errChan <- fmt.Errorf("remote command exited with status %s", exitValueRE.FindStringSubmatch(string(buf[:n]))[1])
+			return
+		}
+
 		_, err = out.Write(buf[:n])
 		if err != nil {
 			errChan <- err
 			return
 		}
+
 	}
 }
