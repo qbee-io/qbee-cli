@@ -597,7 +597,8 @@ func (cli *Client) executeCommandStream(ctx context.Context, writer io.Writer, d
 
 }
 
-var exitValueRE = regexp.MustCompile(`exit status (\d+)`)
+var exitValueRE = regexp.MustCompile(`^exit status (\d+)$`)
+var exitTimeoutRE = regexp.MustCompile(`^command timed out$`)
 
 // readerLoop reads from the stream and writes to the console.
 func readerLoop(in io.Reader, out io.Writer, errChan chan error) {
@@ -616,6 +617,11 @@ func readerLoop(in io.Reader, out io.Writer, errChan chan error) {
 
 		if exitValueRE.Match(buf[:n]) {
 			errChan <- fmt.Errorf("remote command exited with status %s", exitValueRE.FindStringSubmatch(string(buf[:n]))[1])
+			return
+		}
+
+		if exitTimeoutRE.Match(buf[:n]) {
+			errChan <- fmt.Errorf("remote command timed out")
 			return
 		}
 
