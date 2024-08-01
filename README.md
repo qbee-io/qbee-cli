@@ -5,6 +5,12 @@ qbee-cli is a client library and a command line tool used to interact with [qbee
 
 # Use as command line tool
 
+## Download the binary
+
+Open the [releases](https://github.com/qbee-io/qbee-cli/releases) page, scroll down to **Assets** and download the latest version for your platform.
+
+*NOTE:* The binary is not signed, so you might need to allow it to run in your system settings. For Windows, you need to add ".exe" to the binary name.
+
 ## Build the binary
 
 ```shell
@@ -66,3 +72,8 @@ func main() {
 	}
 }
 ```
+
+## Contributing
+
+We welcome contributions to this project!
+Please see [Contribution License Agreement](https://qbee.io/docs/contribution-license-agreement.html) for more information.
