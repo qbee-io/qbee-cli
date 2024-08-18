@@ -26,7 +26,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -441,20 +440,20 @@ func (cli *Client) Connect(ctx context.Context, deviceID string, targets []Remot
 // ConnectConsole establishes a shell connection to a remote device.
 func (cli *Client) ConnectConsole(ctx context.Context, deviceID string, command []string) error {
 
-	fd := int(os.Stdin.Fd())
-	oldState, err := term.MakeRaw(fd)
+	termStdinFd := int(os.Stdin.Fd())
+	oldState, err := term.MakeRaw(termStdinFd)
 	if err != nil {
 		return fmt.Errorf("terminal make raw: %s", err)
 	}
 
 	defer func() {
-		err := term.Restore(fd, oldState)
+		err := term.Restore(termStdinFd, oldState)
 		if err != nil {
 			fmt.Printf("error restoring terminal state: %s\n", err)
 		}
 	}()
 
-	w, h, err := term.GetSize(fd)
+	termWidth, termHeight, err := term.GetSize(termStdinFd)
 	if err != nil {
 		return fmt.Errorf("terminal get size: %s", err)
 	}
@@ -462,8 +461,8 @@ func (cli *Client) ConnectConsole(ctx context.Context, deviceID string, command 
 	var initCmd = &transport.PTYCommand{
 		Type:      transport.PTYCommandTypeResize,
 		SessionID: "",
-		Cols:      uint16(w),
-		Rows:      uint16(h),
+		Cols:      uint16(termWidth),
+		Rows:      uint16(termHeight),
 	}
 
 	if command != nil {
@@ -500,7 +499,7 @@ func (cli *Client) ConnectConsole(ctx context.Context, deviceID string, command 
 
 	defer shellStream.Close()
 
-	go console.ResizeConsole(ctx, client.GetSession(), string(sessionIDBytes), fd, w, h)
+	go console.ResizeConsole(ctx, client.GetSession(), string(sessionIDBytes), termStdinFd, termWidth, termHeight)
 
 	errChan := make(chan error)
 
@@ -518,10 +517,7 @@ func (cli *Client) ConnectConsole(ctx context.Context, deviceID string, command 
 	}
 }
 
-var exitValueRE = regexp.MustCompile(`^exit status (\d+)$`)
-var exitTimeoutRE = regexp.MustCompile(`^command timed out$`)
-
-// readerLoop reads from the stream and writes to the console.
+// readerLoop reads from reader and writes to writer until EOF or an error occurs.
 func readerLoop(in io.Reader, out io.Writer, errChan chan error) {
 	var buf [1024]byte
 
@@ -533,16 +529,6 @@ func readerLoop(in io.Reader, out io.Writer, errChan chan error) {
 				return
 			}
 			errChan <- err
-			return
-		}
-
-		if exitValueRE.Match(buf[:n]) {
-			errChan <- fmt.Errorf("remote command exited with status %s", exitValueRE.FindStringSubmatch(string(buf[:n]))[1])
-			return
-		}
-
-		if exitTimeoutRE.Match(buf[:n]) {
-			errChan <- fmt.Errorf("remote command timed out")
 			return
 		}
 
