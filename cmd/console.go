@@ -26,21 +26,21 @@ import (
 )
 
 const (
-	shellDeviceOption  = "device"
-	shellCommandOption = "command"
+	consoleDeviceOption  = "device"
+	consoleCommandOption = "command"
 )
 
-var terminalCommand = Command{
+var consoleCommand = Command{
 	Description: "Start a terminal session on a device",
 	Options: []Option{
 		{
-			Name:     shellDeviceOption,
+			Name:     consoleDeviceOption,
 			Short:    "d",
 			Help:     "Device ID",
 			Required: true,
 		},
 		{
-			Name:     shellCommandOption,
+			Name:     consoleCommandOption,
 			Short:    "c",
 			Help:     "Command to execute as JSON string",
 			Required: false,
@@ -54,19 +54,19 @@ var terminalCommand = Command{
 		}
 
 		if runtime.GOOS == "windows" {
-			return fmt.Errorf("shell is not supported on Windows")
+			return fmt.Errorf("console is currently not supported on Windows")
 		}
 
 		var cmd []string
 
-		if opts[shellCommandOption] != "" {
-			if err := json.Unmarshal([]byte(opts[shellCommandOption]), &cmd); err != nil {
+		if opts[consoleCommandOption] != "" {
+			if err := json.Unmarshal([]byte(opts[consoleCommandOption]), &cmd); err != nil {
 				return err
 			}
 		}
 
-		deviceID := opts[shellDeviceOption]
-		if err := cli.ConnectShell(ctx, deviceID, cmd); err != nil {
+		deviceID := opts[consoleDeviceOption]
+		if err := cli.ConnectConsole(ctx, deviceID, cmd); err != nil {
 			return err
 		}
 

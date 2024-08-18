@@ -438,8 +438,8 @@ func (cli *Client) Connect(ctx context.Context, deviceID string, targets []Remot
 	}
 }
 
-// ConnectShell establishes a shell connection to a remote device.
-func (cli *Client) ConnectShell(ctx context.Context, deviceID string, command []string) error {
+// ConnectConsole establishes a shell connection to a remote device.
+func (cli *Client) ConnectConsole(ctx context.Context, deviceID string, command []string) error {
 
 	fd := int(os.Stdin.Fd())
 	oldState, err := term.MakeRaw(fd)

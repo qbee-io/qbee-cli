@@ -51,14 +51,14 @@ var Main = Command{
 		return nil
 	},
 	SubCommands: map[string]Command{
-		"connect":  connectCommand,
-		"version":  versionCommand,
-		"login":    loginCommand,
-		"files":    filemanagerCommand,
-		"devices":  devicesCommand,
-		"config":   configCommand,
-		"run":      runAgentCommand,
-		"terminal": terminalCommand,
+		"connect": connectCommand,
+		"version": versionCommand,
+		"login":   loginCommand,
+		"files":   filemanagerCommand,
+		"devices": devicesCommand,
+		"config":  configCommand,
+		"run":     runAgentCommand,
+		"console": consoleCommand,
 	},
 }
 
