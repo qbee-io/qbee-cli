@@ -26,14 +26,17 @@ import (
 	"net/http"
 	"net/url"
 	"os"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
 
+	"go.qbee.io/client/console"
 	"go.qbee.io/transport"
 
 	chisel "github.com/jpillora/chisel/client"
 	"golang.org/x/net/http/httpproxy"
+	"golang.org/x/term"
 )
 
 const (
@@ -248,6 +251,35 @@ func (cli *Client) connectStdio(ctx context.Context, client *transport.Client, t
 	return err
 }
 
+// getConnectClient gets a transport client for the device connection
+func (cli *Client) getConnectClient(ctx context.Context, deviceID string) (*transport.Client, error) {
+	deviceStatus, err := cli.GetDeviceStatus(ctx, deviceID)
+	if err != nil {
+		return nil, err
+	}
+
+	if !deviceStatus.RemoteAccess {
+		return nil, fmt.Errorf("remote access is not available for device %s", deviceID)
+	}
+
+	edgeURL := fmt.Sprintf("https://%s/device/%s", deviceStatus.Edge, deviceStatus.UUID)
+
+	var tlsConfig *tls.Config
+
+	if strings.HasPrefix(deviceStatus.Edge, "edge:") || strings.HasPrefix(deviceStatus.Edge, "localhost:") {
+		tlsConfig = &tls.Config{
+			InsecureSkipVerify: true,
+		}
+	}
+
+	client, err := transport.NewClient(ctx, edgeURL, cli.authToken, tlsConfig)
+	if err != nil {
+		return nil, fmt.Errorf("error initializing remote access client: %w", err)
+	}
+
+	return client, nil
+}
+
 // connect establishes a connection to a remote device.
 func (cli *Client) connect(ctx context.Context, deviceUUID, edgeHost string, targets []RemoteAccessTarget) error {
 	edgeURL := fmt.Sprintf("https://%s/device/%s", edgeHost, deviceUUID)
@@ -403,5 +435,122 @@ func (cli *Client) Connect(ctx context.Context, deviceID string, targets []Remot
 		return cli.connect(ctx, deviceStatus.UUID, deviceStatus.Edge, targets)
 	default:
 		return fmt.Errorf("unsupported edge version %d", deviceStatus.EdgeVersion)
+	}
+}
+
+// ConnectShell establishes a shell connection to a remote device.
+func (cli *Client) ConnectShell(ctx context.Context, deviceID string, command []string) error {
+
+	fd := int(os.Stdin.Fd())
+	oldState, err := term.MakeRaw(fd)
+	if err != nil {
+		return fmt.Errorf("terminal make raw: %s", err)
+	}
+
+	defer func() {
+		err := term.Restore(fd, oldState)
+		if err != nil {
+			fmt.Printf("error restoring terminal state: %s\n", err)
+		}
+	}()
+
+	w, h, err := term.GetSize(fd)
+	if err != nil {
+		return fmt.Errorf("terminal get size: %s", err)
+	}
+
+	var initCmd = &transport.PTYCommand{
+		Type:      transport.PTYCommandTypeResize,
+		SessionID: "",
+		Cols:      uint16(w),
+		Rows:      uint16(h),
+	}
+
+	if command != nil {
+		initCmd.Command = command[0]
+
+		if len(command) > 1 {
+			initCmd.CommandArgs = command[1:]
+		}
+	}
+
+	client, err := cli.getConnectClient(ctx, deviceID)
+	if err != nil {
+		return err
+	}
+
+	// close the client and all local listeners when the context is cancelled
+	closers := []io.Closer{client}
+	defer func() {
+		for _, closer := range closers {
+			_ = closer.Close()
+		}
+	}()
+
+	payload, err := json.Marshal(initCmd)
+	if err != nil {
+		return fmt.Errorf("error marshaling initial window size: %w", err)
+	}
+
+	shellStream, sessionIDBytes, err := client.OpenStreamPayload(ctx, transport.MessageTypePTY, payload)
+
+	if err != nil {
+		return fmt.Errorf("error opening shell stream: %w", err)
+	}
+
+	defer shellStream.Close()
+
+	go console.ResizeConsole(ctx, client.GetSession(), string(sessionIDBytes), fd, w, h)
+
+	errChan := make(chan error)
+
+	go readerLoop(shellStream, os.Stdout, errChan)
+	go readerLoop(os.Stdin, shellStream, errChan)
+
+	select {
+	case <-ctx.Done():
+		return nil
+	case err := <-errChan:
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+}
+
+var exitValueRE = regexp.MustCompile(`^exit status (\d+)$`)
+var exitTimeoutRE = regexp.MustCompile(`^command timed out$`)
+
+// readerLoop reads from the stream and writes to the console.
+func readerLoop(in io.Reader, out io.Writer, errChan chan error) {
+	var buf [1024]byte
+
+	for {
+		n, err := in.Read(buf[:])
+		if err != nil {
+			if err == io.EOF {
+				errChan <- nil
+				return
+			}
+			errChan <- err
+			return
+		}
+
+		if exitValueRE.Match(buf[:n]) {
+			errChan <- fmt.Errorf("remote command exited with status %s", exitValueRE.FindStringSubmatch(string(buf[:n]))[1])
+			return
+		}
+
+		if exitTimeoutRE.Match(buf[:n]) {
+			errChan <- fmt.Errorf("remote command timed out")
+			return
+		}
+
+		_, err = out.Write(buf[:n])
+		if err != nil {
+			errChan <- err
+			return
+		}
+
 	}
 }
