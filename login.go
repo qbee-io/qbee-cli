@@ -48,8 +48,9 @@ type LoginResponse struct {
 
 // LoginConfig is the configuration file for the CLI authentication.
 type LoginConfig struct {
-	AuthToken string `json:"token"`
-	BaseURL   string `json:"base_url"`
+	AuthToken    string `json:"token"`
+	RefreshToken string `json:"refresh_token"`
+	BaseURL      string `json:"base_url"`
 }
 
 // LoginWriteConfig writes the CLI authentication configuration to the user's home directory.
@@ -119,10 +120,25 @@ func LoginGetAuthenticatedClient(ctx context.Context) (*Client, error) {
 		return cli, nil
 	}
 
-	if config, err := LoginReadConfig(); err == nil {
-		return New().WithBaseURL(config.BaseURL).WithAuthToken(config.AuthToken), nil
+	var config *LoginConfig
+	var err error
+	if config, err = LoginReadConfig(); err != nil {
+		return nil, err
 	}
-	return nil, fmt.Errorf("no authentication mechanism found")
+
+	client := New().WithBaseURL(config.BaseURL).
+		WithAuthToken(config.AuthToken).
+		WithRefreshToken(config.RefreshToken)
+
+	if err := client.RefreshToken(ctx); err != nil {
+		return nil, fmt.Errorf("unable to refresh token, please login again: %w", err)
+	}
+
+	if err := LoginWriteConfig(*config); err != nil {
+		return nil, err
+	}
+
+	return client, nil
 }
 
 // Login returns a new authenticated API Client.
