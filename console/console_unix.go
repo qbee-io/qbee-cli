@@ -44,39 +44,47 @@ func ResizeConsole(ctx context.Context, session *smux.Session, sessionID string,
 			return
 		case <-windowChange:
 			newWidth, newHeight, _ := term.GetSize(termFD)
-			if newWidth != width || newHeight != height {
-				width = newWidth
-				height = newHeight
 
-				cmd := transport.PTYCommand{
-					Type:      transport.PTYCommandTypeResize,
-					SessionID: sessionID,
-					Cols:      uint16(width),
-					Rows:      uint16(height),
-				}
+			if newWidth == width && newHeight == height {
+				return
+			}
 
-				shellStream, err := session.OpenStream()
-				if err != nil {
-					fmt.Printf("error opening shell stream: %s\n", err)
-					return
-				}
+			width = newWidth
+			height = newHeight
 
-				var payload []byte
-				if payload, err = json.Marshal(cmd); err != nil {
-					fmt.Printf("error marshaling window resize command: %s\n", err)
-					return
-				}
-
-				if err := transport.WriteMessage(shellStream, transport.MessageTypePTYCommand, payload); err != nil {
-					fmt.Printf("error writing window resize command: %s\n", err)
-					return
-				}
-
-				if _, err = transport.ExpectOK(shellStream); err != nil {
-					fmt.Printf("error resizing window: %s\n", err)
-					return
-				}
+			if err := sendResizeCommand(session, sessionID, width, height); err != nil {
+				fmt.Fprintf(os.Stderr, "error resizing window: %v\n", err)
+				return
 			}
 		}
 	}
+}
+
+// sendRezizeCommand sends a resize command to the remote shell.
+func sendResizeCommand(session *smux.Session, sessionID string, width, height int) error {
+	cmd := transport.PTYCommand{
+		Type:      transport.PTYCommandTypeResize,
+		SessionID: sessionID,
+		Cols:      uint16(width),
+		Rows:      uint16(height),
+	}
+
+	shellStream, err := session.OpenStream()
+	if err != nil {
+		return fmt.Errorf("error opening shell stream: %w", err)
+	}
+
+	var payload []byte
+	if payload, err = json.Marshal(cmd); err != nil {
+		return fmt.Errorf("error marshaling window resize command: %w", err)
+	}
+
+	if err := transport.WriteMessage(shellStream, transport.MessageTypePTYCommand, payload); err != nil {
+		return fmt.Errorf("error writing window resize command: %w", err)
+	}
+
+	if _, err = transport.ExpectOK(shellStream); err != nil {
+		return fmt.Errorf("error resizing window: %w", err)
+	}
+	return nil
 }
