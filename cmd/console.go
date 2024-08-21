@@ -18,34 +18,15 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
+	"os"
 	"runtime"
 
 	"go.qbee.io/client"
 )
 
-const (
-	consoleDeviceOption  = "device"
-	consoleCommandOption = "command"
-)
-
 var consoleCommand = Command{
 	Description: "Start a terminal session on a device",
-	Options: []Option{
-		{
-			Name:     consoleDeviceOption,
-			Short:    "d",
-			Help:     "Device ID",
-			Required: true,
-		},
-		{
-			Name:     consoleCommandOption,
-			Short:    "c",
-			Help:     "Command to execute as JSON string",
-			Required: false,
-		},
-	},
 	Target: func(opts Options) error {
 		ctx := context.Background()
 		cli, err := client.LoginGetAuthenticatedClient(ctx)
@@ -59,14 +40,15 @@ var consoleCommand = Command{
 
 		var cmd []string
 
-		if opts[consoleCommandOption] != "" {
-			if err := json.Unmarshal([]byte(opts[consoleCommandOption]), &cmd); err != nil {
-				return err
-			}
+		if len(os.Args) < 3 {
+			return fmt.Errorf("missing device ID")
 		}
 
-		deviceID := opts[consoleDeviceOption]
-		if err := cli.ConnectConsole(ctx, deviceID, cmd); err != nil {
+		if len(os.Args) > 3 {
+			cmd = os.Args[3:]
+		}
+
+		if err := cli.ConnectConsole(ctx, os.Args[2], cmd); err != nil {
 			return err
 		}
 
