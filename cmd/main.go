@@ -58,7 +58,7 @@ var Main = Command{
 		"devices": devicesCommand,
 		"config":  configCommand,
 		"run":     runAgentCommand,
-		"console": consoleCommand,
+		"term":    terminalCommand,
 	},
 }
 

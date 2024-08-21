@@ -25,8 +25,20 @@ import (
 	"go.qbee.io/client"
 )
 
-var consoleCommand = Command{
-	Description: "Start a terminal session on a device",
+var terminalCommand = Command{
+	Description: "Start a terminal session on a device with optional command",
+	Usage:       "term <device ID> [command]",
+	OptionsHandler: func(opts Options) error {
+		if len(os.Args) < 3 {
+			return fmt.Errorf("missing device ID")
+		}
+
+		if !client.IsValidDeviceID(os.Args[2]) {
+			return fmt.Errorf("invalid device ID %s", os.Args[2])
+		}
+
+		return nil
+	},
 	Target: func(opts Options) error {
 		ctx := context.Background()
 		cli, err := client.LoginGetAuthenticatedClient(ctx)
@@ -40,15 +52,11 @@ var consoleCommand = Command{
 
 		var cmd []string
 
-		if len(os.Args) < 3 {
-			return fmt.Errorf("missing device ID")
-		}
-
 		if len(os.Args) > 3 {
 			cmd = os.Args[3:]
 		}
 
-		if err := cli.ConnectConsole(ctx, os.Args[2], cmd); err != nil {
+		if err := cli.ConnectTerminal(ctx, os.Args[2], cmd); err != nil {
 			return err
 		}
 

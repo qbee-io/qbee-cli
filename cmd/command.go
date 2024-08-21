@@ -69,6 +69,9 @@ type Command struct {
 	// Options to be applied before Target or SubCommands are executed.
 	Options []Option
 
+	// Usage contains a custom usage string for the subcommand.
+	Usage string
+
 	// OptionsHandler provides ability to act on options before executing target or sub-commands.
 	OptionsHandler func(opts Options) error
 
@@ -118,6 +121,11 @@ func (cmd Command) Execute(args []string, opts Options) error {
 
 // renderOptions for the command.
 func (cmd Command) renderOptions() {
+	if cmd.Usage != "" {
+		fmt.Printf("\n%s %s\n", os.Args[0], cmd.Usage)
+		return
+	}
+
 	if len(cmd.Options) == 0 {
 		return
 	}
