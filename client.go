@@ -20,6 +20,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -31,9 +32,10 @@ const DefaultBaseURL = "https://www.app.qbee.io"
 
 // Client encapsulates communication with the public API.
 type Client struct {
-	baseURL    string
-	authToken  string
-	httpClient *http.Client
+	baseURL      string
+	authToken    string
+	httpClient   *http.Client
+	refreshToken string
 }
 
 // New returns a new instance of a public API client.
@@ -72,9 +74,25 @@ func (cli *Client) WithAuthToken(authToken string) *Client {
 	return cli
 }
 
+// WithRefreshToken sets the refresh token for the client.
+func (cli *Client) WithRefreshToken(refreshToken string) *Client {
+	cli.refreshToken = refreshToken
+	return cli
+}
+
 // GetAuthToken returns the authentication token used by the client.
 func (cli *Client) GetAuthToken() string {
 	return cli.authToken
+}
+
+// GetRefreshToken returns the refresh token used by the client.
+func (cli *Client) GetRefreshToken() string {
+	return cli.refreshToken
+}
+
+// SetRefreshToken sets the refresh token used by the client.
+func (cli *Client) SetRefreshToken(refreshToken string) {
+	cli.refreshToken = refreshToken
 }
 
 // Request sends an HTTP request to the API and returns the HTTP response.
@@ -147,6 +165,12 @@ func (cli *Client) Call(ctx context.Context, method, path string, src, dst any) 
 		}
 	}
 
+	for _, cookie := range response.Cookies() {
+		if cookie.Name == refreshTokenCookieName {
+			cli.SetRefreshToken(cookie.Value)
+		}
+	}
+
 	return nil
 }
 
@@ -158,6 +182,43 @@ func (cli *Client) Authenticate(ctx context.Context, email string, password stri
 	}
 
 	cli.WithAuthToken(token)
+
+	return nil
+}
+
+const refreshAuthTokenPath = "/api/v2/refresh-jwt"
+const refreshTokenCookieName = "PHPSESSID"
+
+// RefreshToken refreshes the client's authentication token.
+func (cli *Client) RefreshToken(ctx context.Context) error {
+	if cli.refreshToken == "" {
+		return errors.New("no refresh token set")
+	}
+
+	httpRequest, err := http.NewRequestWithContext(ctx, http.MethodPost, cli.GetBaseURL()+refreshAuthTokenPath, nil)
+	if err != nil {
+		return fmt.Errorf("error creating request: %w", err)
+	}
+
+	httpRequest.AddCookie(&http.Cookie{
+		Name:  refreshTokenCookieName,
+		Value: cli.refreshToken,
+	})
+
+	var httpResponse *http.Response
+	if httpResponse, err = cli.GetHTTPClient().Do(httpRequest); err != nil {
+		return fmt.Errorf("error refreshing token: %w", err)
+	}
+
+	defer httpResponse.Body.Close()
+
+	if httpResponse.StatusCode != http.StatusOK {
+		var responseBody []byte
+		responseBody, _ = io.ReadAll(httpResponse.Body)
+		return ParseErrorResponse(responseBody)
+	}
+
+	cli.WithAuthToken(httpResponse.Header.Get("Refreshed-Token"))
 
 	return nil
 }
