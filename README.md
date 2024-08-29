@@ -37,7 +37,7 @@ qbee-cli connect -d <deviceID> -t <target>[,<target> ...]
 Where:
 - `deviceID` identifies to which device we want to connect (public key digest)
 - `target` defines a singe port forwarding target as `[<localHost>:]<localPort>:<remoteHost>:<remotePort>`
-- `localHost` is optional and defaults to _127.0.0.1_ to only listen on the loopback interface
+- `localHost` is optional and defaults to _localhost_ to only listen on the loopback interface
 - `localPort` is the local port on which tunnel will listen for connections/packets
 - `remoteHost` must be set to _localhost_
 - `remotePort` is the remote port on which tunnel will connect to on the device

@@ -95,7 +95,7 @@ func ParseRemoteAccessTarget(targetString string) (RemoteAccessTarget, error) {
 	var remotePort string
 
 	if len(parts) == 3 {
-		localHost = "127.0.0.1"
+		localHost = "localhost"
 		localPort = parts[0]
 		remoteHost = parts[1]
 		remotePort = parts[2]
