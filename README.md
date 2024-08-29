@@ -13,9 +13,11 @@ go build -o qbee-cli ./cmd
 
 ## Providing credentials
 
-Currently, the only way to provide credentials is through environmental variables: `QBEE_EMAIL` & `QBEE_PASSWORD`.
+Currently, the only way to provide credentials is through environmental variables: `QBEE_EMAIL` & `QBEE_PASSWORD`. 
 
-If the user account associated with the email requires two-factor authentication, the tool will return an error, as we currently don't support it. In that case, please consider creating a user with limited access and separate credentials which don't required two-factor authentication.
+If your account is configured with two-factor authentication, you will either be prompted for which of your configured
+2FA providers you want to use, or you can set the `QBEE_2FA_CODE` environment variable to provide a code for the 
+Google provider directly.
 
 Please remember to rotate your credentials regularly.
 

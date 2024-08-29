@@ -185,54 +185,66 @@ const login2FAChallengeVerifyPath = "/api/v2/challenge-verify"
 
 // Login2FA returns a new authenticated API Client.
 func (cli *Client) Login2FA(ctx context.Context, challenge string) (string, error) {
+	var code string
+	var provider string
+	if os.Getenv("QBEE_2FA_CODE") != "" {
+		fmt.Printf("Using 2FA code from environment variable QBEE_2FA_CODE as a google provider\n")
 
-	fmt.Printf("Select 2FA provider:\n")
-
-	for i, provider := range valid2FAProviders {
-		fmt.Printf("%d) %s\n", i+1, provider)
+		provider = "google"
+		code = os.Getenv("QBEE_2FA_CODE")
 	}
 
-	fmt.Printf("Choice: ")
+	if provider == "" {
+		fmt.Printf("Select 2FA provider:\n")
 
-	scanner := bufio.NewScanner(os.Stdin)
-	scanner.Scan()
-	err := scanner.Err()
-	if err != nil {
-		log.Fatal(err)
+		for i, provider := range valid2FAProviders {
+			fmt.Printf("%d) %s\n", i+1, provider)
+		}
+
+		fmt.Printf("Choice: ")
+
+		scanner := bufio.NewScanner(os.Stdin)
+		scanner.Scan()
+		err := scanner.Err()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		providerIndex := scanner.Text()
+
+		index, err := strconv.Atoi(providerIndex)
+		if err != nil {
+			return "", err
+		}
+
+		if index < 1 || index > len(valid2FAProviders) {
+			return "", fmt.Errorf("invalid provider")
+		}
+
+		provider = valid2FAProviders[index-1]
 	}
 
-	providerIndex := scanner.Text()
-
-	index, err := strconv.Atoi(providerIndex)
-	if err != nil {
-		return "", err
-	}
-
-	if index < 1 || index > len(valid2FAProviders) {
-		return "", fmt.Errorf("invalid provider")
-	}
-
-	provider := valid2FAProviders[index-1]
 	requestPrepare := &Login2FARequest{
 		Challenge: challenge,
 		Provider:  provider,
 	}
-
 	responsePrepare := new(Login2FAResponse)
 	if err := cli.Call(ctx, http.MethodPost, login2FAChallengeGetPath, requestPrepare, &responsePrepare); err != nil {
 		return "", err
 	}
 
-	fmt.Printf("Enter 2FA code: ")
+	if code == "" {
+		fmt.Printf("Enter 2FA code: ")
 
-	scanner = bufio.NewScanner(os.Stdin)
-	scanner.Scan()
-	err = scanner.Err()
-	if err != nil {
-		log.Fatal(err)
+		scanner := bufio.NewScanner(os.Stdin)
+		scanner.Scan()
+		err := scanner.Err()
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		code = scanner.Text()
 	}
-
-	code := scanner.Text()
 
 	requestVerify := &Login2FARequest{
 		Challenge: responsePrepare.Challenge,
