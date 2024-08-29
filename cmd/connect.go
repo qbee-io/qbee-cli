@@ -62,7 +62,7 @@ var connectCommand = Command{
 		{
 			Name:  connectTargetOption,
 			Short: "t",
-			Help:  "Comma-separated targets definition <localPort>:<remoteHost>:<remotePort>[/udp]",
+			Help:  "Comma-separated targets definition [<localHost:]<localPort>:<remoteHost>:<remotePort>[/udp]",
 		},
 		{
 			Name:  connectConfigFileOption,

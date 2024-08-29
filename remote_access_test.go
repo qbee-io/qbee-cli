@@ -36,6 +36,18 @@ func TestParseRemoteAccessTarget(t *testing.T) {
 			targetString: "1:localhost:2",
 			want: client.RemoteAccessTarget{
 				Protocol:   "tcp",
+				LocalHost:  "localhost",
+				LocalPort:  "1",
+				RemoteHost: "localhost",
+				RemotePort: "2",
+			},
+		},
+		{
+			name:         "valid tcp target with custom local host",
+			targetString: "0.0.0.0:1:localhost:2",
+			want: client.RemoteAccessTarget{
+				Protocol:   "tcp",
+				LocalHost:  "0.0.0.0",
 				LocalPort:  "1",
 				RemoteHost: "localhost",
 				RemotePort: "2",
@@ -46,6 +58,7 @@ func TestParseRemoteAccessTarget(t *testing.T) {
 			targetString: "1:localhost:2/udp",
 			want: client.RemoteAccessTarget{
 				Protocol:   "udp",
+				LocalHost:  "localhost",
 				LocalPort:  "1",
 				RemoteHost: "localhost",
 				RemotePort: "2",
@@ -56,6 +69,7 @@ func TestParseRemoteAccessTarget(t *testing.T) {
 			targetString: "stdio:localhost:2",
 			want: client.RemoteAccessTarget{
 				Protocol:   "tcp",
+				LocalHost:  "localhost",
 				LocalPort:  "stdio",
 				RemoteHost: "localhost",
 				RemotePort: "2",
@@ -66,6 +80,7 @@ func TestParseRemoteAccessTarget(t *testing.T) {
 			targetString: "stdio:localhost:2/udp",
 			want: client.RemoteAccessTarget{
 				Protocol:   "udp",
+				LocalHost:  "localhost",
 				LocalPort:  "stdio",
 				RemoteHost: "localhost",
 				RemotePort: "2",
