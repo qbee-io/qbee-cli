@@ -213,8 +213,6 @@ func (cli *Client) Login2FA(ctx context.Context, challenge string) (string, erro
 		return "", err
 	}
 
-	challenge = challengeGetResponse.Challenge
-
 	// The code might already have been provided as an environment variable.
 	if login2FAMethod.Code == "" {
 		code, err := prompt2FACode()
