@@ -165,7 +165,13 @@ func (cli *Client) Login(ctx context.Context, email, password string) (string, e
 	return response.Token, nil
 }
 
-// Login2FARequest is the request body for the Login 2FA API.
+// Login2FAMethod is a container for the 2FA provider and code used during login.
+type Login2FAMethod struct {
+	Provider string
+	Code     string
+}
+
+// Login2FARequest contains the request body for the Login 2FA API.
 type Login2FARequest struct {
 	Challenge string `json:"challenge,omitempty"`
 	Provider  string `json:"preferProvider,omitempty"`
@@ -185,7 +191,64 @@ const login2FAChallengeVerifyPath = "/api/v2/challenge-verify"
 
 // Login2FA returns a new authenticated API Client.
 func (cli *Client) Login2FA(ctx context.Context, challenge string) (string, error) {
+	login2FAMethod := findProvided2FAMethod()
+	if login2FAMethod == nil {
+		var err error
+		provider, err := prompt2FAProvider()
+		if err != nil {
+			return "", err
+		}
 
+		login2FAMethod = &Login2FAMethod{
+			Provider: provider,
+		}
+	}
+
+	challengeGetRequest := &Login2FARequest{
+		Challenge: challenge,
+		Provider:  login2FAMethod.Provider,
+	}
+	challengeGetResponse := new(Login2FAResponse)
+	if err := cli.Call(ctx, http.MethodPost, login2FAChallengeGetPath, challengeGetRequest, &challengeGetResponse); err != nil {
+		return "", err
+	}
+
+	// The code might already have been provided as an environment variable.
+	if login2FAMethod.Code == "" {
+		code, err := prompt2FACode()
+		if err != nil {
+			return "", err
+		}
+
+		login2FAMethod.Code = code
+	}
+
+	challengeVerifyRequest := &Login2FARequest{
+		Challenge: challengeGetResponse.Challenge,
+		Code:      login2FAMethod.Code,
+	}
+	challengeVerifyResponse := new(Login2FAResponse)
+	if err := cli.Call(ctx, http.MethodPost, login2FAChallengeVerifyPath, challengeVerifyRequest, &challengeVerifyResponse); err != nil {
+		return "", err
+	}
+
+	return challengeVerifyResponse.Token, nil
+}
+
+func findProvided2FAMethod() *Login2FAMethod {
+	if os.Getenv("QBEE_2FA_CODE") != "" {
+		fmt.Printf("Using 2FA code from environment variable QBEE_2FA_CODE as a google 2FA provider\n")
+
+		return &Login2FAMethod{
+			Provider: "google",
+			Code:     os.Getenv("QBEE_2FA_CODE"),
+		}
+	}
+
+	return nil
+}
+
+func prompt2FAProvider() (string, error) {
 	fmt.Printf("Select 2FA provider:\n")
 
 	for i, provider := range valid2FAProviders {
@@ -213,37 +276,19 @@ func (cli *Client) Login2FA(ctx context.Context, challenge string) (string, erro
 	}
 
 	provider := valid2FAProviders[index-1]
-	requestPrepare := &Login2FARequest{
-		Challenge: challenge,
-		Provider:  provider,
-	}
+	return provider, nil
+}
 
-	responsePrepare := new(Login2FAResponse)
-	if err := cli.Call(ctx, http.MethodPost, login2FAChallengeGetPath, requestPrepare, &responsePrepare); err != nil {
-		return "", err
-	}
-
+func prompt2FACode() (string, error) {
 	fmt.Printf("Enter 2FA code: ")
 
-	scanner = bufio.NewScanner(os.Stdin)
+	scanner := bufio.NewScanner(os.Stdin)
 	scanner.Scan()
-	err = scanner.Err()
+	err := scanner.Err()
 	if err != nil {
-		log.Fatal(err)
+		return "", err
 	}
 
 	code := scanner.Text()
-
-	requestVerify := &Login2FARequest{
-		Challenge: responsePrepare.Challenge,
-		Code:      code,
-	}
-
-	responseVerify := new(Login2FAResponse)
-
-	if err := cli.Call(ctx, http.MethodPost, login2FAChallengeVerifyPath, requestVerify, &responseVerify); err != nil {
-		return "", err
-	}
-
-	return responseVerify.Token, nil
+	return code, nil
 }
