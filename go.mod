@@ -3,7 +3,7 @@ module go.qbee.io/client
 go 1.21
 
 require (
-	github.com/jpillora/chisel v1.9.1
+	github.com/jpillora/chisel v1.10.0
 	github.com/xtaci/smux v1.5.24
 	go.qbee.io/transport v1.24.33
 	golang.org/x/net v0.23.0
