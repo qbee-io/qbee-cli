@@ -16,6 +16,7 @@
 
 package config
 
+// MetricsMonitorBundle defines name for the metrics_monitor bundle.
 const MetricsMonitorBundle Bundle = "metrics_monitor"
 
 // MetricsMonitor configures on-agent metrics monitoring.
