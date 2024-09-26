@@ -237,8 +237,6 @@ func (cli *Client) Login2FA(ctx context.Context, challenge string) (string, erro
 
 func findProvided2FAMethod() *Login2FAMethod {
 	if os.Getenv("QBEE_2FA_CODE") != "" {
-		fmt.Printf("Using 2FA code from environment variable QBEE_2FA_CODE as a google 2FA provider\n")
-
 		return &Login2FAMethod{
 			Provider: "google",
 			Code:     os.Getenv("QBEE_2FA_CODE"),
