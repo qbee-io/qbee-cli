@@ -138,11 +138,16 @@ func (cli *Client) Request(ctx context.Context, method, path string, src any) (*
 
 func (cli *Client) DoWithRefresh(request *http.Request) (*http.Response, error) {
 
-	var bodyBuffer bytes.Buffer
+	var body []byte
+
 	if request.Body != nil {
-		request.Body = io.NopCloser(io.TeeReader(request.Body, &bodyBuffer))
+		var err error
+		if body, err = io.ReadAll(request.Body); err != nil {
+			return nil, fmt.Errorf("error reading request body: %w", err)
+		}
 	}
 
+	request.Body = io.NopCloser(bytes.NewBuffer(body))
 	response, err := cli.httpClient.Do(request)
 	if err != nil {
 		return nil, err
@@ -155,24 +160,23 @@ func (cli *Client) DoWithRefresh(request *http.Request) (*http.Response, error) 
 	io.Copy(io.Discard, response.Body)
 	response.Body.Close()
 
-	request.Body = io.NopCloser(&bodyBuffer)
-
 	if err := cli.RefreshToken(request.Context()); err != nil {
 		return nil, fmt.Errorf("error refreshing token: %w", err)
 	}
 
+	request.Body = io.NopCloser(bytes.NewBuffer(body))
 	request.Header.Set("Authorization", "Bearer "+cli.authToken)
 
-	response, err = cli.httpClient.Do(request)
+	newResponse, err := cli.httpClient.Do(request)
 	if err != nil {
 		return nil, err
 	}
 
-	if response.StatusCode >= http.StatusBadRequest {
-		defer response.Body.Close()
+	if newResponse.StatusCode >= http.StatusBadRequest {
+		defer newResponse.Body.Close()
 		var responseBody []byte
 
-		if responseBody, err = io.ReadAll(response.Body); err != nil {
+		if responseBody, err = io.ReadAll(newResponse.Body); err != nil {
 			return nil, fmt.Errorf("error reading response body: %w", err)
 		}
 
@@ -180,10 +184,10 @@ func (cli *Client) DoWithRefresh(request *http.Request) (*http.Response, error) 
 			return nil, ParseErrorResponse(responseBody)
 		}
 
-		return nil, fmt.Errorf("got an http error with no body: %d", response.StatusCode)
+		return nil, fmt.Errorf("got an http error with no body: %d", newResponse.StatusCode)
 	}
 
-	return response, nil
+	return newResponse, nil
 }
 
 // Call the API using provided method and path.
@@ -277,7 +281,7 @@ func (cli *Client) RefreshToken(ctx context.Context) error {
 	}
 
 	if err := LoginWriteConfig(newLoginConfig); err != nil {
-		return fmt.Errorf("error saving refresh token: %w", err)
+		return fmt.Errorf("error saving refresh config: %w", err)
 	}
 	return nil
 }
