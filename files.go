@@ -85,23 +85,10 @@ func (cli *Client) UploadFileReplace(ctx context.Context, path, name string, rep
 	request.Header.Set("Authorization", "Bearer "+cli.authToken)
 
 	var response *http.Response
-	if response, err = cli.httpClient.Do(request); err != nil {
+	if response, err = cli.DoWithRefresh(request); err != nil {
 		return err
 	}
 	defer response.Body.Close()
-
-	if response.StatusCode >= http.StatusBadRequest {
-		var responseBody []byte
-		if responseBody, err = io.ReadAll(response.Body); err != nil {
-			return fmt.Errorf("error reading response body: %w", err)
-		}
-
-		if len(responseBody) > 0 {
-			return ParseErrorResponse(responseBody)
-		}
-
-		return fmt.Errorf("got an http error with no body: %d", response.StatusCode)
-	}
 
 	return nil
 }
@@ -167,23 +154,9 @@ func (cli *Client) DownloadFile(ctx context.Context, name string) (io.ReadCloser
 	request.Header.Set("Authorization", "Bearer "+cli.authToken)
 
 	var response *http.Response
-	if response, err = cli.httpClient.Do(request); err != nil {
+
+	if response, err = cli.DoWithRefresh(request); err != nil {
 		return nil, err
-	}
-
-	if response.StatusCode >= http.StatusBadRequest {
-		defer response.Body.Close()
-
-		var responseBody []byte
-		if responseBody, err = io.ReadAll(response.Body); err != nil {
-			return nil, fmt.Errorf("error reading response body: %w", err)
-		}
-
-		if len(responseBody) > 0 {
-			return nil, ParseErrorResponse(responseBody)
-		}
-
-		return nil, fmt.Errorf("got an http error with no body: %d", response.StatusCode)
 	}
 
 	return response.Body, nil

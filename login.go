@@ -130,14 +130,6 @@ func LoginGetAuthenticatedClient(ctx context.Context) (*Client, error) {
 		WithAuthToken(config.AuthToken).
 		WithRefreshToken(config.RefreshToken)
 
-	if err := client.RefreshToken(ctx); err != nil {
-		return nil, fmt.Errorf("unable to refresh token, please login again: %w", err)
-	}
-
-	if err := LoginWriteConfig(*config); err != nil {
-		return nil, err
-	}
-
 	return client, nil
 }
 

@@ -129,8 +129,58 @@ func (cli *Client) Request(ctx context.Context, method, path string, src any) (*
 	request.Header.Set("User-Agent", UserAgent)
 
 	var response *http.Response
-	if response, err = cli.httpClient.Do(request); err != nil {
+	if response, err = cli.DoWithRefresh(request); err != nil {
 		return nil, fmt.Errorf("error sending request: %w", err)
+	}
+
+	return response, nil
+}
+
+func (cli *Client) DoWithRefresh(request *http.Request) (*http.Response, error) {
+
+	var bodyBuffer bytes.Buffer
+	if request.Body != nil {
+		request.Body = io.NopCloser(io.TeeReader(request.Body, &bodyBuffer))
+	}
+
+	response, err := cli.httpClient.Do(request)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.StatusCode != http.StatusUnauthorized {
+		return response, nil
+	}
+
+	io.Copy(io.Discard, response.Body)
+	response.Body.Close()
+
+	request.Body = io.NopCloser(&bodyBuffer)
+
+	if err := cli.RefreshToken(request.Context()); err != nil {
+		return nil, fmt.Errorf("error refreshing token: %w", err)
+	}
+
+	request.Header.Set("Authorization", "Bearer "+cli.authToken)
+
+	response, err = cli.httpClient.Do(request)
+	if err != nil {
+		return nil, err
+	}
+
+	if response.StatusCode >= http.StatusBadRequest {
+		defer response.Body.Close()
+		var responseBody []byte
+
+		if responseBody, err = io.ReadAll(response.Body); err != nil {
+			return nil, fmt.Errorf("error reading response body: %w", err)
+		}
+
+		if len(responseBody) > 0 {
+			return nil, ParseErrorResponse(responseBody)
+		}
+
+		return nil, fmt.Errorf("got an http error with no body: %d", response.StatusCode)
 	}
 
 	return response, nil
@@ -220,5 +270,14 @@ func (cli *Client) RefreshToken(ctx context.Context) error {
 
 	cli.WithAuthToken(httpResponse.Header.Get("Refreshed-Token"))
 
+	newLoginConfig := LoginConfig{
+		BaseURL:      cli.GetBaseURL(),
+		AuthToken:    cli.GetAuthToken(),
+		RefreshToken: cli.GetRefreshToken(),
+	}
+
+	if err := LoginWriteConfig(newLoginConfig); err != nil {
+		return fmt.Errorf("error saving refresh token: %w", err)
+	}
 	return nil
 }
