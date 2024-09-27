@@ -65,8 +65,9 @@ var loginCommand = Command{
 		}
 
 		loginConfig := client.LoginConfig{
-			AuthToken: cli.GetAuthToken(),
-			BaseURL:   cli.GetBaseURL(),
+			AuthToken:    cli.GetAuthToken(),
+			RefreshToken: cli.GetRefreshToken(),
+			BaseURL:      cli.GetBaseURL(),
 		}
 
 		if err := client.LoginWriteConfig(loginConfig); err != nil {

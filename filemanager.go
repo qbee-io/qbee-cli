@@ -247,10 +247,12 @@ func (m *FileManager) snapshotLocal(localPath string) error {
 func (m *FileManager) snapshotRemote(ctx context.Context, remotePath string) error {
 
 	searchPath := fmt.Sprintf("^%s/.*", remotePath)
+	trimPrefix := remotePath + "/"
 
 	// Search for the root directory
 	if remotePath == "/" {
 		searchPath = fmt.Sprintf("^%s.*", remotePath)
+		trimPrefix = remotePath
 	}
 
 	query := ListQuery{
@@ -267,7 +269,7 @@ func (m *FileManager) snapshotRemote(ctx context.Context, remotePath string) err
 			return err
 		}
 		for _, file := range files.Items {
-			remoteRelativeName := strings.TrimPrefix(file.Path, remotePath+"/")
+			remoteRelativeName := strings.TrimPrefix(file.Path, trimPrefix)
 			m.remoteFiles[remoteRelativeName] = file
 		}
 
