@@ -153,7 +153,13 @@ func (cli *Client) DoWithRefresh(request *http.Request) (*http.Response, error) 
 		return nil, err
 	}
 
+	// Return error if we don't get a 401
 	if response.StatusCode != http.StatusUnauthorized {
+		return response, nil
+	}
+
+	// Return error if we don't have a refresh token
+	if cli.refreshToken == "" {
 		return response, nil
 	}
 
@@ -171,20 +177,6 @@ func (cli *Client) DoWithRefresh(request *http.Request) (*http.Response, error) 
 	newResponse, err := cli.httpClient.Do(request)
 	if err != nil {
 		return nil, err
-	}
-
-	if newResponse.StatusCode >= http.StatusBadRequest {
-		var responseBody []byte
-
-		if responseBody, err = io.ReadAll(newResponse.Body); err != nil {
-			return nil, fmt.Errorf("error reading response body: %w", err)
-		}
-
-		if len(responseBody) > 0 {
-			return nil, ParseErrorResponse(responseBody)
-		}
-
-		return nil, fmt.Errorf("got an http error with no body: %d", newResponse.StatusCode)
 	}
 
 	return newResponse, nil
@@ -237,7 +229,6 @@ func (cli *Client) Authenticate(ctx context.Context, email string, password stri
 
 	cli.WithAuthToken(token)
 
-	fmt.Printf("cli: %+v\n", cli)
 	return nil
 }
 

@@ -117,6 +117,7 @@ func LoginGetAuthenticatedClient(ctx context.Context) (*Client, error) {
 		if err := cli.Authenticate(ctx, email, password); err != nil {
 			return nil, err
 		}
+
 		return cli, nil
 	}
 
@@ -152,6 +153,7 @@ func (cli *Client) Login(ctx context.Context, email, password string) (string, e
 			}
 			return "", err
 		}
+		return "", err
 	}
 
 	return response.Token, nil

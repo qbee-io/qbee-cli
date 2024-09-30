@@ -6,9 +6,11 @@ import (
 	"testing"
 )
 
+var testingHasCredentials = os.Getenv("QBEE_EMAIL") != "" && os.Getenv("QBEE_PASSWORD") != ""
+
 func Test_FileManager_Sync(t *testing.T) {
 	// Create a new FileManager
-	if os.Getenv("QBEE_EMAIL") == "" || os.Getenv("QBEE_PASSWORD") == "" {
+	if !testingHasCredentials {
 		t.Skip("Skipping test because QBEE_EMAIL and QBEE_PASSWORD are not set")
 	}
 
@@ -18,29 +20,41 @@ func Test_FileManager_Sync(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	m := NewFileManager()
-	// Set the client
-	m.WithClient(cli)
 
-	// Set the delete flag
-	m.WithDelete(true)
-	// Set the dryrun flag
-	m.WithDryRun(false)
+	m := NewFileManager().WithClient(cli).WithDelete(true)
 
 	if err := m.Sync(ctx, ".github", "/.github"); err != nil {
 		t.Fatal(err)
 	}
 
-	cli.WithAuthToken("")
+	cli.WithAuthToken("invalid-test-refresh-token")
 
-	if err := m.Sync(ctx, ".github", "/.github"); err != nil {
+	if err := m.Sync(ctx, ".github", "/"); err != nil {
 		t.Fatal(err)
 	}
 
-	if err := m.List(ctx, ".github"); err != nil {
+	if err := m.SnapshotRemote(ctx, "/"); err != nil {
 		t.Fatal(err)
+	}
+	cli.WithAuthToken("invalid-test-refresh-token")
+
+	files := m.GetRemoteSnapshot()
+	if len(files) == 0 {
+		t.Fatal("no files found")
+	}
+
+	if err := m.Remove(ctx, "/", true); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := m.SnapshotRemote(ctx, "/"); err == nil {
+		t.Fatal("expected error")
+	}
+
+	files = m.GetRemoteSnapshot()
+	if len(files) != 0 {
+		t.Fatal("files found")
 	}
 
 	// Synchronize the local directory with the FileManager
-
 }
