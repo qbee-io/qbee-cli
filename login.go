@@ -144,10 +144,8 @@ func (cli *Client) Login(ctx context.Context, email, password string) (string, e
 	response := new(LoginResponse)
 
 	if err := cli.Call(ctx, http.MethodPost, loginPath, request, &response); err != nil {
-
 		// If the error is an API error, check if it's a 2FA challenge.
 		if apiError := make(Error); errors.As(err, &apiError) {
-
 			if challenge, has2FAChallenge := apiError["challenge"].(string); has2FAChallenge {
 				return cli.Login2FA(ctx, challenge)
 			}

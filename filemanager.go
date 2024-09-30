@@ -124,13 +124,13 @@ func (m *FileManager) Sync(ctx context.Context, source, dest string) error {
 // Otherwise, it will return an error when deleting a non-empty directory.
 func (m *FileManager) Remove(ctx context.Context, remotePath string, recursive bool) error {
 
-	// Add the root directory to the list of files to delete
-
+	// Add the top directory to the list of files to delete
 	m.remoteFiles[remotePath] = File{
 		Name:  remotePath,
 		Path:  remotePath,
 		IsDir: true,
 	}
+
 	if recursive {
 		if err := m.SnapshotRemote(ctx, remotePath); err != nil {
 			return err
@@ -315,7 +315,6 @@ func (m *FileManager) upload(ctx context.Context, file File, destPath string) er
 	if err != nil {
 		return err
 	}
-
 	defer reader.Close()
 
 	if err := m.client.UploadFileReplace(ctx, destinationPath, baseName, true, reader); err != nil {
@@ -362,7 +361,6 @@ func (m *FileManager) UploadFile(ctx context.Context, remotePath, localPath stri
 	if err != nil {
 		return err
 	}
-
 	defer reader.Close()
 
 	return m.client.UploadFileReplace(ctx, remotePath, localPath, overwrite, reader)
@@ -378,7 +376,6 @@ func (m *FileManager) DownloadFile(ctx context.Context, remotePath, localPath st
 	defer writer.Close()
 
 	reader, err := m.client.DownloadFile(ctx, remotePath)
-
 	if err != nil {
 		return err
 	}
