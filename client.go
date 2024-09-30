@@ -152,7 +152,6 @@ func (cli *Client) DoWithRefresh(request *http.Request) (*http.Response, error) 
 	if err != nil {
 		return nil, err
 	}
-	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusUnauthorized {
 		return response, nil
@@ -161,7 +160,6 @@ func (cli *Client) DoWithRefresh(request *http.Request) (*http.Response, error) 
 	if _, err := io.Copy(io.Discard, response.Body); err != nil {
 		return nil, fmt.Errorf("error discarding response body: %w", err)
 	}
-	response.Body.Close()
 
 	if err := cli.RefreshToken(request.Context()); err != nil {
 		return nil, fmt.Errorf("error refreshing token: %w", err)
@@ -176,7 +174,6 @@ func (cli *Client) DoWithRefresh(request *http.Request) (*http.Response, error) 
 	}
 
 	if newResponse.StatusCode >= http.StatusBadRequest {
-		defer newResponse.Body.Close()
 		var responseBody []byte
 
 		if responseBody, err = io.ReadAll(newResponse.Body); err != nil {
@@ -240,6 +237,7 @@ func (cli *Client) Authenticate(ctx context.Context, email string, password stri
 
 	cli.WithAuthToken(token)
 
+	fmt.Printf("cli: %+v\n", cli)
 	return nil
 }
 

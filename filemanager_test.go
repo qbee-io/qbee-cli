@@ -30,9 +30,14 @@ func Test_FileManager_Sync(t *testing.T) {
 	if err := m.Sync(ctx, ".github", "/.github"); err != nil {
 		t.Fatal(err)
 	}
+
 	cli.WithAuthToken("")
 
 	if err := m.Sync(ctx, ".github", "/.github"); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := m.List(ctx, ".github"); err != nil {
 		t.Fatal(err)
 	}
 
