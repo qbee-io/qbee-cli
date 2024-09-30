@@ -136,6 +136,7 @@ func (cli *Client) Request(ctx context.Context, method, path string, src any) (*
 	return response, nil
 }
 
+// DoWithRefresh attempts to send the request and refresh the token if necessary.
 func (cli *Client) DoWithRefresh(request *http.Request) (*http.Response, error) {
 
 	var body []byte

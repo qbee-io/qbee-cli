@@ -68,10 +68,12 @@ func (m *FileManager) WithDryRun(dryrun bool) *FileManager {
 	return m
 }
 
+// GetLocalSnapshot returns the snapshot of the local files.
 func (m *FileManager) GetLocalSnapshot() map[string]File {
 	return m.localFiles
 }
 
+// GetRemoteSnapshot returns the snapshot of the remote files.
 func (m *FileManager) GetRemoteSnapshot() map[string]File {
 	return m.remoteFiles
 }
