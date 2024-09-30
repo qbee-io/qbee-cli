@@ -125,14 +125,12 @@ func (m *FileManager) Sync(ctx context.Context, source, dest string) error {
 func (m *FileManager) Remove(ctx context.Context, remotePath string, recursive bool) error {
 
 	// Add the root directory to the list of files to delete
-	if remotePath != "/" {
-		m.remoteFiles[remotePath] = File{
-			Name:  remotePath,
-			Path:  remotePath,
-			IsDir: true,
-		}
-	}
 
+	m.remoteFiles[remotePath] = File{
+		Name:  remotePath,
+		Path:  remotePath,
+		IsDir: true,
+	}
 	if recursive {
 		if err := m.SnapshotRemote(ctx, remotePath); err != nil {
 			return err
@@ -214,6 +212,7 @@ func (m *FileManager) filterUploads() (map[string]File, error) {
 
 // SnapshotLocal populates the localFiles map with the files in the local directory.
 func (m *FileManager) SnapshotLocal(localPath string) error {
+	m.localFiles = make(map[string]File)
 
 	stat, err := os.Stat(localPath)
 
@@ -255,6 +254,8 @@ func (m *FileManager) SnapshotLocal(localPath string) error {
 
 // SnapshotRemote populates the remoteFiles map with the files in the FileManager.
 func (m *FileManager) SnapshotRemote(ctx context.Context, remotePath string) error {
+
+	m.remoteFiles = make(map[string]File)
 
 	searchPath := fmt.Sprintf("^%s/.*", remotePath)
 	trimPrefix := remotePath + "/"

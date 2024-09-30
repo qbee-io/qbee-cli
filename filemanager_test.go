@@ -3,10 +3,74 @@ package client
 import (
 	"context"
 	"os"
+	"path/filepath"
 	"testing"
 )
 
 var testingHasCredentials = os.Getenv("QBEE_EMAIL") != "" && os.Getenv("QBEE_PASSWORD") != ""
+
+func Test_FileManager_Token_Refresh(t *testing.T) {
+	if !testingHasCredentials {
+		t.Skip("Skipping test because QBEE_EMAIL and QBEE_PASSWORD are not set")
+	}
+
+	ctx := context.Background()
+
+	cli, err := LoginGetAuthenticatedClient(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	cli.authToken = "invalid"
+
+	m := NewFileManager().WithClient(cli)
+	if err := m.SnapshotRemote(ctx, "/"); err != nil {
+		t.Fatal(err)
+	}
+
+}
+
+func Test_FileManager_Upload_Download(t *testing.T) {
+	if !testingHasCredentials {
+		t.Skip("Skipping test because QBEE_EMAIL and QBEE_PASSWORD are not set")
+	}
+
+	ctx := context.Background()
+
+	cli, err := LoginGetAuthenticatedClient(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	m := NewFileManager().WithClient(cli)
+
+	tempDir := os.TempDir()
+	tmpFile := filepath.Join(tempDir, "filemanager_test.txt")
+	fileContents := []byte("filemanager_test")
+	if err := os.WriteFile(tmpFile, fileContents, 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := m.UploadFile(ctx, "/", tmpFile, true); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := os.Remove(tmpFile); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := m.DownloadFile(ctx, "/filemanager_test.txt", tmpFile); err != nil {
+		t.Fatal(err)
+	}
+
+	downloadContents, err := os.ReadFile(tmpFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if string(downloadContents) != string(fileContents) {
+		t.Fatalf("expected %s, got %s", fileContents, downloadContents)
+	}
+}
 
 func Test_FileManager_Sync(t *testing.T) {
 	// Create a new FileManager
@@ -27,8 +91,6 @@ func Test_FileManager_Sync(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cli.WithAuthToken("invalid-test-refresh-token")
-
 	if err := m.Sync(ctx, ".github", "/"); err != nil {
 		t.Fatal(err)
 	}
@@ -36,7 +98,6 @@ func Test_FileManager_Sync(t *testing.T) {
 	if err := m.SnapshotRemote(ctx, "/"); err != nil {
 		t.Fatal(err)
 	}
-	cli.WithAuthToken("invalid-test-refresh-token")
 
 	files := m.GetRemoteSnapshot()
 	if len(files) == 0 {
@@ -47,8 +108,8 @@ func Test_FileManager_Sync(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := m.SnapshotRemote(ctx, "/"); err == nil {
-		t.Fatal("expected error")
+	if err := m.SnapshotRemote(ctx, "/"); err != nil {
+		t.Fatal(err)
 	}
 
 	files = m.GetRemoteSnapshot()
@@ -56,5 +117,4 @@ func Test_FileManager_Sync(t *testing.T) {
 		t.Fatal("files found")
 	}
 
-	// Synchronize the local directory with the FileManager
 }
