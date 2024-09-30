@@ -18,7 +18,7 @@ jobs:
         env:
           QBEE_EMAIL: ${{ secrets.QBEE_API_USER }}
           QBEE_PASSWORD: ${{ secrets.QBEE_API_PASSWORD }}
-          QBEE_BASEURL: ${{ secrets.QBEE_API_BASEURL }} 
+          QBEE_BASEURL: ${{ secrets.QBEE_API_URL }} 
         run: go test ./...
       - id: govulncheck
         uses: golang/govulncheck-action@v1

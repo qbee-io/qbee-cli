@@ -152,12 +152,15 @@ func (cli *Client) DoWithRefresh(request *http.Request) (*http.Response, error) 
 	if err != nil {
 		return nil, err
 	}
+	defer response.Body.Close()
 
 	if response.StatusCode != http.StatusUnauthorized {
 		return response, nil
 	}
 
-	io.Copy(io.Discard, response.Body)
+	if _, err := io.Copy(io.Discard, response.Body); err != nil {
+		return nil, fmt.Errorf("error discarding response body: %w", err)
+	}
 	response.Body.Close()
 
 	if err := cli.RefreshToken(request.Context()); err != nil {
