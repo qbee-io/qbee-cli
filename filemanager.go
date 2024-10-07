@@ -24,6 +24,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -36,6 +37,10 @@ type FileManager struct {
 	deleteMissing bool
 	// dryRun does not perform any changes.
 	dryRun bool
+	// excludes removes local paths from being considered
+	excludes []regexp.Regexp
+	// includes includes only local paths that match the pattern
+	includes []regexp.Regexp
 	// remoteFiles is a map of the remote files.
 	remoteFiles map[string]File
 	// localFiles is a map of the local files.
@@ -76,6 +81,36 @@ func (m *FileManager) GetLocalSnapshot() map[string]File {
 // GetRemoteSnapshot returns the snapshot of the remote files.
 func (m *FileManager) GetRemoteSnapshot() map[string]File {
 	return m.remoteFiles
+}
+
+// WithExcludes sets the excludes
+func (m *FileManager) WithExcludes(excludes string) *FileManager {
+	m.excludes = preparePathMatchList(excludes)
+	return m
+}
+
+// WithIncludes sets the includes
+func (m *FileManager) WithIncludes(includes string) *FileManager {
+	m.includes = preparePathMatchList(includes)
+	return m
+}
+
+// preparePathMatchList prepares a list of regular expressions from a comma-separated list of patterns.
+func preparePathMatchList(patterns string) []regexp.Regexp {
+	patternsList := strings.Split(patterns, ",")
+
+	pathMatchList := make([]regexp.Regexp, 0)
+
+	for _, pathPattern := range patternsList {
+		pathPattern = strings.TrimLeft(pathPattern, "/")
+		pathPattern = regexp.QuoteMeta(pathPattern)
+
+		pathRE := regexp.MustCompile(pathPattern)
+
+		pathMatchList = append(pathMatchList, *pathRE)
+	}
+
+	return pathMatchList
 }
 
 // Sync synchronizes the local directory with the FileManager.
@@ -236,6 +271,10 @@ func (m *FileManager) SnapshotLocal(localPath string) error {
 			return err
 		}
 
+		if m.matchExcludes(fileName) && !m.matchIncludes(fileName) {
+			return nil
+		}
+
 		fileName = filepath.ToSlash(fileName)
 		m.localFiles[fileName] = File{
 			Name:  fileName,
@@ -252,6 +291,36 @@ func (m *FileManager) SnapshotLocal(localPath string) error {
 	}
 
 	return nil
+}
+
+// matchExcludes determines if a path matches any of the exclude filters.
+func (m *FileManager) matchExcludes(path string) bool {
+	if len(m.excludes) == 0 {
+		return false
+	}
+	return matchRElist(path, m.excludes)
+}
+
+// matchIncludes determines if a path matches any of the include filters.
+func (m *FileManager) matchIncludes(path string) bool {
+	if len(m.includes) == 0 {
+		return true
+	}
+	return matchRElist(path, m.includes)
+}
+
+// matchRElist determines if a pattern matches a list of regular expressions.
+func matchRElist(pattern string, list []regexp.Regexp) bool {
+	if len(list) == 0 {
+		return false
+	}
+
+	for _, re := range list {
+		if re.MatchString(pattern) {
+			return true
+		}
+	}
+	return false
 }
 
 // SnapshotRemote populates the remoteFiles map with the files in the FileManager.

@@ -29,6 +29,38 @@ func Test_FileManager_Token_Refresh(t *testing.T) {
 
 }
 
+func Test_FileManager_Exclude_Include(t *testing.T) {
+
+	if !testingHasCredentials {
+		t.Skip("Skipping test because QBEE_EMAIL and QBEE_PASSWORD are not set")
+	}
+
+	ctx := context.Background()
+
+	cli, err := LoginGetAuthenticatedClient(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	m := NewFileManager().WithClient(cli).WithDryRun(true).WithExcludes("cmd/,.git").WithIncludes("cmd/filemanager.go")
+
+	if err := m.SnapshotLocal("."); err != nil {
+		t.Fatal(err)
+	}
+
+	list := m.GetLocalSnapshot()
+	if len(list) == 0 {
+		t.Fatal("should have 1 file")
+	}
+
+	for _, f := range list {
+		if f.Path == "cmd/filemanager.go" {
+			return
+		}
+	}
+	t.Fatal("file not found")
+}
+
 func Test_FileManager_Upload_Download(t *testing.T) {
 	if !testingHasCredentials {
 		t.Skip("Skipping test because QBEE_EMAIL and QBEE_PASSWORD are not set")
