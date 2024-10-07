@@ -34,6 +34,7 @@ const (
 	fileManagerRecursiveOption   = "recursive"
 	fileManagerOverwriteOption   = "overwrite"
 	fileManagerExcludeOption     = "exclude"
+	fileManagerIncludeOption     = "include"
 )
 
 var filemanagerCommand = Command{
@@ -74,7 +75,11 @@ var fileManagerSyncCommand = Command{
 		},
 		{
 			Name: fileManagerExcludeOption,
-			Help: "Comma-separated path patterns to exclude",
+			Help: "Comma-separated path patterns to exclude relative to the source directory",
+		},
+		{
+			Name: fileManagerIncludeOption,
+			Help: "Comma-separated path patterns to include relative to the source directory",
 		},
 	},
 	Target: func(opts Options) error {
@@ -93,10 +98,16 @@ var fileManagerSyncCommand = Command{
 
 		remotePath := path.Clean(opts[fileManagerDestinationOption])
 		localPath := filepath.Clean(opts[fileManagerSourceOption])
+
 		exludes := opts[fileManagerExcludeOption]
+		includes := opts[fileManagerIncludeOption]
 
 		if exludes != "" {
 			fileManager.WithExcludes(exludes)
+		}
+
+		if includes != "" {
+			fileManager.WithIncludes(includes)
 		}
 
 		fmt.Printf("Syncing directory %s to %s\n", localPath, remotePath)
