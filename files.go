@@ -85,7 +85,7 @@ func (cli *Client) UploadFileReplace(ctx context.Context, path, name string, rep
 	request.Header.Set("Authorization", "Bearer "+cli.authToken)
 
 	var response *http.Response
-	if response, err = cli.httpClient.Do(request); err != nil {
+	if response, err = cli.DoWithRefresh(request); err != nil {
 		return err
 	}
 	defer response.Body.Close()
@@ -167,7 +167,7 @@ func (cli *Client) DownloadFile(ctx context.Context, name string) (io.ReadCloser
 	request.Header.Set("Authorization", "Bearer "+cli.authToken)
 
 	var response *http.Response
-	if response, err = cli.httpClient.Do(request); err != nil {
+	if response, err = cli.DoWithRefresh(request); err != nil {
 		return nil, err
 	}
 

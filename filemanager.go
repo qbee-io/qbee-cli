@@ -68,14 +68,24 @@ func (m *FileManager) WithDryRun(dryrun bool) *FileManager {
 	return m
 }
 
+// GetLocalSnapshot returns the snapshot of the local files.
+func (m *FileManager) GetLocalSnapshot() map[string]File {
+	return m.localFiles
+}
+
+// GetRemoteSnapshot returns the snapshot of the remote files.
+func (m *FileManager) GetRemoteSnapshot() map[string]File {
+	return m.remoteFiles
+}
+
 // Sync synchronizes the local directory with the FileManager.
 func (m *FileManager) Sync(ctx context.Context, source, dest string) error {
 
-	if err := m.snapshotLocal(source); err != nil {
+	if err := m.SnapshotLocal(source); err != nil {
 		return err
 	}
 
-	if err := m.snapshotRemote(ctx, dest); err != nil {
+	if err := m.SnapshotRemote(ctx, dest); err != nil {
 		return err
 	}
 
@@ -116,7 +126,7 @@ func (m *FileManager) Sync(ctx context.Context, source, dest string) error {
 // Otherwise, it will return an error when deleting a non-empty directory.
 func (m *FileManager) Remove(ctx context.Context, remotePath string, recursive bool) error {
 
-	// Add the root directory to the list of files to delete
+	// Add the top directory to the list of files to delete
 	m.remoteFiles[remotePath] = File{
 		Name:  remotePath,
 		Path:  remotePath,
@@ -124,7 +134,7 @@ func (m *FileManager) Remove(ctx context.Context, remotePath string, recursive b
 	}
 
 	if recursive {
-		if err := m.snapshotRemote(ctx, remotePath); err != nil {
+		if err := m.SnapshotRemote(ctx, remotePath); err != nil {
 			return err
 		}
 	}
@@ -135,7 +145,7 @@ func (m *FileManager) Remove(ctx context.Context, remotePath string, recursive b
 // List files under provided remotePath.
 func (m *FileManager) List(ctx context.Context, remotePath string) error {
 
-	if err := m.snapshotRemote(ctx, remotePath); err != nil {
+	if err := m.SnapshotRemote(ctx, remotePath); err != nil {
 		return err
 	}
 
@@ -202,8 +212,9 @@ func (m *FileManager) filterUploads() (map[string]File, error) {
 	return uploads, nil
 }
 
-// snapshotLocal populates the localFiles map with the files in the local directory.
-func (m *FileManager) snapshotLocal(localPath string) error {
+// SnapshotLocal populates the localFiles map with the files in the local directory.
+func (m *FileManager) SnapshotLocal(localPath string) error {
+	m.localFiles = make(map[string]File)
 
 	stat, err := os.Stat(localPath)
 
@@ -243,8 +254,10 @@ func (m *FileManager) snapshotLocal(localPath string) error {
 	return nil
 }
 
-// listFileManagerFiles populates the remoteFiles map with the files in the FileManager.
-func (m *FileManager) snapshotRemote(ctx context.Context, remotePath string) error {
+// SnapshotRemote populates the remoteFiles map with the files in the FileManager.
+func (m *FileManager) SnapshotRemote(ctx context.Context, remotePath string) error {
+
+	m.remoteFiles = make(map[string]File)
 
 	searchPath := fmt.Sprintf("^%s/.*", remotePath)
 	trimPrefix := remotePath + "/"
@@ -304,7 +317,6 @@ func (m *FileManager) upload(ctx context.Context, file File, destPath string) er
 	if err != nil {
 		return err
 	}
-
 	defer reader.Close()
 
 	if err := m.client.UploadFileReplace(ctx, destinationPath, baseName, true, reader); err != nil {
@@ -351,7 +363,6 @@ func (m *FileManager) UploadFile(ctx context.Context, remotePath, localPath stri
 	if err != nil {
 		return err
 	}
-
 	defer reader.Close()
 
 	return m.client.UploadFileReplace(ctx, remotePath, localPath, overwrite, reader)
@@ -367,7 +378,6 @@ func (m *FileManager) DownloadFile(ctx context.Context, remotePath, localPath st
 	defer writer.Close()
 
 	reader, err := m.client.DownloadFile(ctx, remotePath)
-
 	if err != nil {
 		return err
 	}

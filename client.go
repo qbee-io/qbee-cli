@@ -129,11 +129,58 @@ func (cli *Client) Request(ctx context.Context, method, path string, src any) (*
 	request.Header.Set("User-Agent", UserAgent)
 
 	var response *http.Response
-	if response, err = cli.httpClient.Do(request); err != nil {
+	if response, err = cli.DoWithRefresh(request); err != nil {
 		return nil, fmt.Errorf("error sending request: %w", err)
 	}
 
 	return response, nil
+}
+
+// DoWithRefresh attempts to send the request and refresh the token if necessary.
+func (cli *Client) DoWithRefresh(request *http.Request) (*http.Response, error) {
+
+	var body []byte
+
+	if request.Body != nil {
+		var err error
+		if body, err = io.ReadAll(request.Body); err != nil {
+			return nil, fmt.Errorf("error reading request body: %w", err)
+		}
+	}
+
+	request.Body = io.NopCloser(bytes.NewBuffer(body))
+	response, err := cli.httpClient.Do(request)
+	if err != nil {
+		return nil, err
+	}
+
+	// Return error if we don't get a 401
+	if response.StatusCode != http.StatusUnauthorized {
+		return response, nil
+	}
+
+	// Return error if we don't have a refresh token
+	if cli.refreshToken == "" {
+		return response, nil
+	}
+
+	if _, err := io.Copy(io.Discard, response.Body); err != nil {
+		return nil, fmt.Errorf("error discarding response body: %w", err)
+	}
+
+	if err := cli.RefreshToken(request.Context()); err != nil {
+		return nil, fmt.Errorf("error refreshing token: %w", err)
+	}
+
+	request.Body = io.NopCloser(bytes.NewBuffer(body))
+	request.Header.Set("Authorization", "Bearer "+cli.authToken)
+
+	newResponse, err := cli.httpClient.Do(request)
+	if err != nil {
+		return nil, err
+	}
+
+	return newResponse, nil
 }
 
 // Call the API using provided method and path.
@@ -220,5 +267,14 @@ func (cli *Client) RefreshToken(ctx context.Context) error {
 
 	cli.WithAuthToken(httpResponse.Header.Get("Refreshed-Token"))
 
+	newLoginConfig := LoginConfig{
+		BaseURL:      cli.GetBaseURL(),
+		AuthToken:    cli.GetAuthToken(),
+		RefreshToken: cli.GetRefreshToken(),
+	}
+
+	if err := LoginWriteConfig(newLoginConfig); err != nil {
+		return fmt.Errorf("error saving refresh config: %w", err)
+	}
 	return nil
 }

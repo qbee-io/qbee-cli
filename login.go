@@ -117,6 +117,7 @@ func LoginGetAuthenticatedClient(ctx context.Context) (*Client, error) {
 		if err := cli.Authenticate(ctx, email, password); err != nil {
 			return nil, err
 		}
+
 		return cli, nil
 	}
 
@@ -129,14 +130,6 @@ func LoginGetAuthenticatedClient(ctx context.Context) (*Client, error) {
 	client := New().WithBaseURL(config.BaseURL).
 		WithAuthToken(config.AuthToken).
 		WithRefreshToken(config.RefreshToken)
-
-	if err := client.RefreshToken(ctx); err != nil {
-		return nil, fmt.Errorf("unable to refresh token, please login again: %w", err)
-	}
-
-	if err := LoginWriteConfig(*config); err != nil {
-		return nil, err
-	}
 
 	return client, nil
 }
@@ -151,15 +144,14 @@ func (cli *Client) Login(ctx context.Context, email, password string) (string, e
 	response := new(LoginResponse)
 
 	if err := cli.Call(ctx, http.MethodPost, loginPath, request, &response); err != nil {
-
 		// If the error is an API error, check if it's a 2FA challenge.
 		if apiError := make(Error); errors.As(err, &apiError) {
-
 			if challenge, has2FAChallenge := apiError["challenge"].(string); has2FAChallenge {
 				return cli.Login2FA(ctx, challenge)
 			}
 			return "", err
 		}
+		return "", err
 	}
 
 	return response.Token, nil
