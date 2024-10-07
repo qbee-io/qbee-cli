@@ -24,6 +24,7 @@ import (
 	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 )
@@ -36,6 +37,8 @@ type FileManager struct {
 	deleteMissing bool
 	// dryRun does not perform any changes.
 	dryRun bool
+	//excludes removes local paths from being considered
+	excludes []regexp.Regexp
 	// remoteFiles is a map of the remote files.
 	remoteFiles map[string]File
 	// localFiles is a map of the local files.
@@ -76,6 +79,17 @@ func (m *FileManager) GetLocalSnapshot() map[string]File {
 // GetRemoteSnapshot returns the snapshot of the remote files.
 func (m *FileManager) GetRemoteSnapshot() map[string]File {
 	return m.remoteFiles
+}
+
+// WithExcludes sets the excludes
+func (m *FileManager) WithExcludes(excludes string) *FileManager {
+	for _, pathPattern := range strings.Split(excludes, ",") {
+		pathPattern = strings.TrimLeft(pathPattern, "/")
+		pathPattern = regexp.QuoteMeta(pathPattern)
+		pathRE := regexp.MustCompile(pathPattern)
+		m.excludes = append(m.excludes, *pathRE)
+	}
+	return m
 }
 
 // Sync synchronizes the local directory with the FileManager.
@@ -236,6 +250,10 @@ func (m *FileManager) SnapshotLocal(localPath string) error {
 			return err
 		}
 
+		if m.filterExcludes(fileName) {
+			return nil
+		}
+
 		fileName = filepath.ToSlash(fileName)
 		m.localFiles[fileName] = File{
 			Name:  fileName,
@@ -252,6 +270,19 @@ func (m *FileManager) SnapshotLocal(localPath string) error {
 	}
 
 	return nil
+}
+
+// filterExcludes determines if a path matches any of the exclude filters.
+func (m *FileManager) filterExcludes(path string) bool {
+	if len(m.excludes) == 0 {
+		return false
+	}
+	for _, exclude := range m.excludes {
+		if exclude.MatchString(path) {
+			return true
+		}
+	}
+	return false
 }
 
 // SnapshotRemote populates the remoteFiles map with the files in the FileManager.
