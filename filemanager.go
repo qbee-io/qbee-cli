@@ -271,7 +271,7 @@ func (m *FileManager) SnapshotLocal(localPath string) error {
 			return err
 		}
 
-		if m.matchExcludes(fileName) && !m.matchIncludes(fileName) {
+		if m.matchExcludes(fileName) && !m.matchIncludes(localPath, fileName) {
 			return nil
 		}
 
@@ -298,15 +298,50 @@ func (m *FileManager) matchExcludes(path string) bool {
 	if len(m.excludes) == 0 {
 		return false
 	}
+
 	return matchRElist(path, m.excludes)
 }
 
 // matchIncludes determines if a path matches any of the include filters.
-func (m *FileManager) matchIncludes(path string) bool {
+func (m *FileManager) matchIncludes(basePath, path string) bool {
 	if len(m.includes) == 0 {
-		return true
+		return false
 	}
-	return matchRElist(path, m.includes)
+
+	if !matchRElist(path, m.includes) {
+		return false
+	}
+
+	// add directories to the list of files
+	dirName := filepath.Dir(path)
+	baseName := filepath.Base(dirName)
+
+	// iterate until dir and base is the same
+	for dirName != baseName {
+		// skip if already in the list
+		if _, ok := m.localFiles[path]; ok {
+			continue
+		}
+
+		absolutePath := filepath.Join(basePath, dirName)
+		fileInfo, err := os.Stat(absolutePath)
+
+		// this should never happen
+		if os.IsNotExist(err) {
+			return false
+		}
+
+		m.localFiles[dirName] = File{
+			Name:  dirName,
+			IsDir: true,
+			Path:  filepath.Join(basePath, dirName),
+			Size:  int(fileInfo.Size()),
+		}
+
+		dirName = filepath.Dir(dirName)
+		baseName = filepath.Base(dirName)
+	}
+	return true
 }
 
 // matchRElist determines if a pattern matches a list of regular expressions.
