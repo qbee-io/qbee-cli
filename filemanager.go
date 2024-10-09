@@ -106,7 +106,6 @@ func preparePathMatchList(patterns string) []regexp.Regexp {
 		pathPattern = regexp.QuoteMeta(pathPattern)
 
 		pathRE := regexp.MustCompile(pathPattern)
-
 		pathMatchList = append(pathMatchList, *pathRE)
 	}
 
@@ -313,17 +312,17 @@ func (m *FileManager) matchIncludes(basePath, path string) bool {
 	}
 
 	// add directories to the list of files
-	dirName := filepath.Dir(path)
-	baseName := filepath.Base(dirName)
+	dirNameRelative := filepath.Dir(path)
+	subDirPaths := strings.Split(dirNameRelative, string(filepath.Separator))
 
-	// iterate until dir and base is the same
-	for dirName != baseName {
-		// skip if already in the list
-		if _, ok := m.localFiles[path]; ok {
+	for i := range subDirPaths {
+		subDirPath := filepath.Join(subDirPaths[:i+1]...)
+		subDirPathKey := filepath.ToSlash(subDirPath)
+		if _, ok := m.localFiles[subDirPathKey]; ok {
 			continue
 		}
 
-		absolutePath := filepath.Join(basePath, dirName)
+		absolutePath := filepath.Join(basePath, subDirPath)
 		fileInfo, err := os.Stat(absolutePath)
 
 		// this should never happen
@@ -331,15 +330,12 @@ func (m *FileManager) matchIncludes(basePath, path string) bool {
 			return false
 		}
 
-		m.localFiles[dirName] = File{
-			Name:  dirName,
+		m.localFiles[subDirPathKey] = File{
+			Name:  subDirPathKey,
 			IsDir: true,
-			Path:  filepath.Join(basePath, dirName),
+			Path:  absolutePath,
 			Size:  int(fileInfo.Size()),
 		}
-
-		dirName = filepath.Dir(dirName)
-		baseName = filepath.Base(dirName)
 	}
 	return true
 }
