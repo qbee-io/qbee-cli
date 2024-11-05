@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import argparse
 import json
 import sys
 import yaml
@@ -69,7 +70,20 @@ def _add_device_to_group(device, label, dataref):
     }
 
 if __name__ == "__main__":
-    if len(sys.argv) > 1 and sys.argv[1] == 'by_groups':
+
+    parser = argparse.ArgumentParser(
+                    prog='qbee-devices-ansible',
+                    description='Convert qbee.io devices to ansible inventory')
+    
+    parser.add_argument('--by-groups', action='store_true', help='Create ansible inventory by groups')
+    parser.add_argument('--by-tags', action='store_true', help='Create ansible inventory by tags')
+    args = parser.parse_args()
+
+    if args.by_groups:
         sys.exit(qbee_devices_ansible_by_groups())
-    else:
+    
+    if args.by_tags:
         sys.exit(qbee_devices_ansible_by_tags())
+
+    parser.print_help()
+    sys.exit(1)
