@@ -20,7 +20,8 @@ def qbee_devices_ansible_by_tags():
         tags = device['tags']
         if tags:
             for tag in tags:
-                _add_device_to_group(device, tag, by_tags)
+                label = re.sub(r'[ -]+', '_', label)
+                _add_device_to_group(device, label, by_tags)
     yaml.dump(by_tags, sys.stdout)
 
 
@@ -37,31 +38,31 @@ def qbee_devices_ansible_by_groups():
             groups = device['ancestors']
 
         if len(groups) == 1:
-            _add_device_to_group(device, groups[0], by_groups)
+            group_label = re.sub(r'[ -]+', '_', groups[0])
+            _add_device_to_group(device, group_label, by_groups)
             continue
 
         group_names = groups[:-1]
         dataref = by_groups
         for group in group_names:
-            group = re.sub(r'[ -]+', '_', group)
+            group_label = re.sub(r'[ -]+', '_', group)
             # Last group
             if group == group_names[-1]:
-                _add_device_to_group(device, group, dataref)
-                continue
+                _add_device_to_group(device, group_label, dataref)
+                break
 
             # Create group if not exists
-            if group not in dataref:
-                dataref[group] = {}
-                dataref[group]['children'] = {}
+            if group_label not in dataref:
+                dataref[group_label] = {}
+                dataref[group_label]['children'] = {}
 
-            dataref = dataref[group]['children']
+            dataref = dataref[group_label]['children']
 
     yaml.dump(by_groups, sys.stdout)
 
 
 # add a device to a group
 def _add_device_to_group(device, label, dataref):
-    label = re.sub(r'[ -]+', '_', label)
     if label not in dataref:
         dataref[label] = {}
 
