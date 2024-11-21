@@ -15,21 +15,21 @@ PROXY_COMMAND = (
 # create ansible inventory from qbee.io devices by tags (non-hiararchical)
 def qbee_devices_ansible_by_tags():
     json_output = json.loads(sys.stdin.read())
-    by_tags = {}
+    ansible_inventory = {}
     for device in json_output['items']:
         tags = device['tags']
         if tags:
             for tag in tags:
-                label = re.sub(r'[ -]+', '_', tag)
-                _add_device_to_group(device, label, by_tags)
-    yaml.dump(by_tags, sys.stdout)
+                tag_label = re.sub(r'[ -]+', '_', tag)
+                _add_device_to_group(device, tag_label, ansible_inventory)
+    yaml.dump(ansible_inventory, sys.stdout)
 
 
 # create ansible inventory from qbee.io devices by groups (hiararchical)
 def qbee_devices_ansible_by_groups():
 
     json_output = json.loads(sys.stdin.read())
-    by_groups = {}
+    ansible_inventory = {}
 
     for device in json_output['items']:
         if 'ancestors_titles' in device:
@@ -39,11 +39,11 @@ def qbee_devices_ansible_by_groups():
 
         if len(groups) == 1:
             group_label = re.sub(r'[ -]+', '_', groups[0])
-            _add_device_to_group(device, group_label, by_groups)
+            _add_device_to_group(device, group_label, ansible_inventory)
             continue
 
         group_names = groups[:-1]
-        dataref = by_groups
+        dataref = ansible_inventory
         for group in group_names:
             group_label = re.sub(r'[ -]+', '_', group)
             # Last group
@@ -58,7 +58,7 @@ def qbee_devices_ansible_by_groups():
 
             dataref = dataref[group_label]['children']
 
-    yaml.dump(by_groups, sys.stdout)
+    yaml.dump(ansible_inventory, sys.stdout)
 
 
 # add a device to a group
