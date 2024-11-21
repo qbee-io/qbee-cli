@@ -20,7 +20,7 @@ def qbee_devices_ansible_by_tags():
         tags = device['tags']
         if tags:
             for tag in tags:
-                label = re.sub(r'[ -]+', '_', label)
+                label = re.sub(r'[ -]+', '_', tag)
                 _add_device_to_group(device, label, by_tags)
     yaml.dump(by_tags, sys.stdout)
 
