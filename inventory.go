@@ -387,6 +387,9 @@ type InventoryListItem struct {
 	// Ancestors - array of ancestor nodes (incl. self).
 	Ancestors []string `json:"ancestors"`
 
+	// AncestorsTitles - array of ancestor nodes' titles (incl. self).
+	AncestorsTitles []string `json:"ancestors_titles,omitempty" bson:"ancestors_titles"`
+
 	// Attributes - device attributes.
 	Attributes DeviceAttributes `json:"attributes"`
 
