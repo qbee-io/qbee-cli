@@ -343,10 +343,29 @@ func (cli *Client) connect(ctx context.Context, deviceUUID, edgeHost string, tar
 		fmt.Printf("Tunneling %s %s to %s\n", target.Protocol, localHostPort, remoteHostPort)
 	}
 
-	// Wait for context to be cancelled
-	<-ctx.Done()
+	smuxSession := client.GetSession()
+	errChan := make(chan error)
 
-	return nil
+	// block until the session is closed or an error occurs. Typically this will happen when
+	// the device is disconnected mid-session.
+	go func() {
+		for {
+			_, err := smuxSession.AcceptStream()
+			if err != nil {
+				errChan <- err
+				return
+			}
+		}
+	}()
+
+	select {
+	case err := <-errChan:
+		smuxSession.Close()
+		return fmt.Errorf("session error for device %s: %w", deviceUUID, err)
+	case <-ctx.Done():
+		fmt.Printf("Connection closed\n")
+		return nil
+	}
 }
 
 // legacyConnect establishes a connection to a remote device using the legacy remote access solution.
