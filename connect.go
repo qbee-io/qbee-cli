@@ -204,8 +204,12 @@ func (cli *Client) ConnectMulti(ctx context.Context, connections []RemoteAccessC
 	}
 }
 
-// ParseConnect parses a device ID and a list of targets and establishes a connection to the device.
 func (cli *Client) ParseConnect(ctx context.Context, deviceID string, targets []string) error {
+	return cli.ParseConnectRetry(ctx, deviceID, targets, 1)
+}
+
+// ParseConnect parses a device ID and a list of targets and establishes a connection to the device.
+func (cli *Client) ParseConnectRetry(ctx context.Context, deviceID string, targets []string, retries int) error {
 
 	if !IsValidDeviceID(deviceID) {
 		return fmt.Errorf("invalid device ID %s", deviceID)
@@ -226,7 +230,32 @@ func (cli *Client) ParseConnect(ctx context.Context, deviceID string, targets []
 		return fmt.Errorf("no targets defined for device %s", deviceID)
 	}
 
-	return cli.Connect(ctx, deviceID, parsedTargets)
+	if retries < 0 {
+		return fmt.Errorf("retries must be a positive number")
+	}
+
+	if retries == 0 {
+		return cli.connectRetryInfinite(ctx, deviceID, parsedTargets)
+	}
+
+	var err error
+	for i := 0; i < retries; i++ {
+		if err = cli.Connect(ctx, deviceID, parsedTargets); err != nil {
+			fmt.Printf("error connecting to device %s: %s\n", deviceID, err)
+		}
+		time.Sleep(5 * time.Second)
+	}
+
+	return err
+}
+
+func (cli *Client) connectRetryInfinite(ctx context.Context, deviceID string, targets []RemoteAccessTarget) error {
+	for {
+		if err := cli.Connect(ctx, deviceID, targets); err != nil {
+			fmt.Printf("error connecting to device %s: %s\n", deviceID, err)
+		}
+		time.Sleep(5 * time.Second)
+	}
 }
 
 // connectStdio connects to the given target using stdin/stdout.
