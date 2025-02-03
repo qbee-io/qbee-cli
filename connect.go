@@ -22,6 +22,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
+	"math/rand/v2"
 	"net"
 	"net/http"
 	"net/url"
@@ -168,8 +170,12 @@ func (cli *Client) GetRemoteAccessToken(ctx context.Context, req RemoteAccessTok
 	return &remoteAccessToken, nil
 }
 
-// ConnectMulti establishes connections to multiple remote devices concurrently.
 func (cli *Client) ConnectMulti(ctx context.Context, connections []RemoteAccessConnection, allowFailures bool) error {
+	return cli.ConnectMultiRetry(ctx, connections, allowFailures, 1)
+}
+
+// ConnectMulti establishes connections to multiple remote devices concurrently.
+func (cli *Client) ConnectMultiRetry(ctx context.Context, connections []RemoteAccessConnection, allowFailures bool, retries int) error {
 	wg := sync.WaitGroup{}
 	errChan := make(chan error)
 	done := make(chan bool)
@@ -180,7 +186,7 @@ func (cli *Client) ConnectMulti(ctx context.Context, connections []RemoteAccessC
 		go func(connection RemoteAccessConnection) {
 			defer wg.Done()
 
-			if err := cli.ParseConnect(ctx, connection.DeviceID, connection.Targets); err != nil {
+			if err := cli.ParseConnectRetry(ctx, connection.DeviceID, connection.Targets, retries); err != nil {
 				errChan <- fmt.Errorf("error connecting to device %s: %w", connection.DeviceID, err)
 			}
 		}(conn)
@@ -234,28 +240,35 @@ func (cli *Client) ParseConnectRetry(ctx context.Context, deviceID string, targe
 		return fmt.Errorf("retries must be a positive number")
 	}
 
-	if retries == 0 {
-		return cli.connectRetryInfinite(ctx, deviceID, parsedTargets)
-	}
-
 	var err error
-	for i := 0; i < retries; i++ {
-		if err = cli.Connect(ctx, deviceID, parsedTargets); err != nil {
+	attempts := 0
+	baseTime := 5 * time.Second
+	maxBackoff := 1 * time.Minute
+	for {
+		err = cli.Connect(ctx, deviceID, parsedTargets)
+		backoff := time.Duration(math.Min(float64(baseTime)*math.Pow(2, float64(attempts)), float64(maxBackoff)))
+
+		if err != nil {
 			fmt.Printf("error connecting to device %s: %s\n", deviceID, err)
 		}
-		time.Sleep(5 * time.Second)
+
+		attempts++
+		// Exit if the maximum number of retries has been reached.
+		if attempts >= retries && retries > 0 {
+			break
+		}
+
+		jitter := time.Duration(rand.Float64() * float64(backoff) * 1)
+		nextBackoff := backoff + jitter
+
+		// Print the attempt number and the next backoff interval.
+		fmt.Printf("Attempt %d failed. Retrying in %v...\n", attempts, nextBackoff)
+		// Sleep for the backoff interval before retrying.
+		time.Sleep(nextBackoff)
+
 	}
 
 	return err
-}
-
-func (cli *Client) connectRetryInfinite(ctx context.Context, deviceID string, targets []RemoteAccessTarget) error {
-	for {
-		if err := cli.Connect(ctx, deviceID, targets); err != nil {
-			fmt.Printf("error connecting to device %s: %s\n", deviceID, err)
-		}
-		time.Sleep(5 * time.Second)
-	}
 }
 
 // connectStdio connects to the given target using stdin/stdout.

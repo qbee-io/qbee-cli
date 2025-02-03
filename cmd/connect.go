@@ -111,6 +111,10 @@ var connectCommand = Command{
 			return fmt.Errorf("invalid retries: %w", err)
 		}
 
+		if retries < 0 {
+			return fmt.Errorf("retries must be >= 0")
+		}
+
 		if opts[connectConfigFileOption] != "" {
 			remoteAccessTargets := make([]client.RemoteAccessConnection, 0)
 			configBytes, err := os.ReadFile(opts[connectConfigFileOption])
@@ -125,7 +129,7 @@ var connectCommand = Command{
 			if len(remoteAccessTargets) == 0 {
 				return fmt.Errorf("no connections defined in config file")
 			}
-			return cli.ConnectMulti(ctx, remoteAccessTargets, opts[connectAllowFailures] == "true")
+			return cli.ConnectMultiRetry(ctx, remoteAccessTargets, opts[connectAllowFailures] == "true", retries)
 		}
 
 		return cli.ParseConnectRetry(ctx,
