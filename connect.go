@@ -260,10 +260,7 @@ func (cli *Client) ParseConnectRetry(ctx context.Context, deviceID string, targe
 
 		jitter := time.Duration(rand.Float64() * float64(backoff) * 1)
 		nextBackoff := backoff + jitter
-
-		// Print the attempt number and the next backoff interval.
 		fmt.Printf("Attempt %d failed. Retrying in %v...\n", attempts, nextBackoff)
-		// Sleep for the backoff interval before retrying.
 		time.Sleep(nextBackoff)
 
 	}
