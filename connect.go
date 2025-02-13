@@ -170,11 +170,12 @@ func (cli *Client) GetRemoteAccessToken(ctx context.Context, req RemoteAccessTok
 	return &remoteAccessToken, nil
 }
 
+// ConnectMulti establishes connections to multiple remote devices concurrently.
 func (cli *Client) ConnectMulti(ctx context.Context, connections []RemoteAccessConnection, allowFailures bool) error {
 	return cli.ConnectMultiRetry(ctx, connections, allowFailures, 1)
 }
 
-// ConnectMulti establishes connections to multiple remote devices concurrently.
+// ConnectMultiRetry establishes connections to multiple remote devices concurrently with retries.
 func (cli *Client) ConnectMultiRetry(ctx context.Context, connections []RemoteAccessConnection, allowFailures bool, retries int) error {
 	wg := sync.WaitGroup{}
 	errChan := make(chan error)
@@ -210,11 +211,12 @@ func (cli *Client) ConnectMultiRetry(ctx context.Context, connections []RemoteAc
 	}
 }
 
+// ParseConnect parses a device ID and a list of targets and establishes a connection to the device.
 func (cli *Client) ParseConnect(ctx context.Context, deviceID string, targets []string) error {
 	return cli.ParseConnectRetry(ctx, deviceID, targets, 1)
 }
 
-// ParseConnect parses a device ID and a list of targets and establishes a connection to the device.
+// ParseConnectRetry parses a device ID and a list of targets and establishes a connection to the device with retries.
 func (cli *Client) ParseConnectRetry(ctx context.Context, deviceID string, targets []string, retries int) error {
 
 	if !IsValidDeviceID(deviceID) {
