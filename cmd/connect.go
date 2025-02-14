@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"strconv"
 	"strings"
 
 	"go.qbee.io/client"
@@ -31,6 +32,7 @@ const (
 	connectTargetOption     = "target"
 	connectConfigFileOption = "config"
 	connectAllowFailures    = "allow-failures"
+	connectRetries          = "retries"
 )
 
 // Example config file:
@@ -74,6 +76,11 @@ var connectCommand = Command{
 			Help: "Allow one or more failures",
 			Flag: "true",
 		},
+		{
+			Name:    "retries",
+			Help:    "Maximum number of retries. Default: 1 (0 means infinite)",
+			Default: "1",
+		},
 	},
 	OptionsHandler: func(opts Options) error {
 		if opts[connectConfigFileOption] != "" {
@@ -99,6 +106,15 @@ var connectCommand = Command{
 			return err
 		}
 
+		retries, err := strconv.Atoi(opts[connectRetries])
+		if err != nil {
+			return fmt.Errorf("invalid retries: %w", err)
+		}
+
+		if retries < 0 {
+			return fmt.Errorf("retries must be >= 0")
+		}
+
 		if opts[connectConfigFileOption] != "" {
 			remoteAccessTargets := make([]client.RemoteAccessConnection, 0)
 			configBytes, err := os.ReadFile(opts[connectConfigFileOption])
@@ -113,11 +129,12 @@ var connectCommand = Command{
 			if len(remoteAccessTargets) == 0 {
 				return fmt.Errorf("no connections defined in config file")
 			}
-			return cli.ConnectMulti(ctx, remoteAccessTargets, opts[connectAllowFailures] == "true")
+			return cli.ConnectMultiRetry(ctx, remoteAccessTargets, opts[connectAllowFailures] == "true", retries)
 		}
 
-		return cli.ParseConnect(ctx,
+		return cli.ParseConnectRetry(ctx,
 			opts[connectDeviceOption],
-			strings.Split(opts[connectTargetOption], ","))
+			strings.Split(opts[connectTargetOption], ","),
+			retries)
 	},
 }

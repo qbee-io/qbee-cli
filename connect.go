@@ -22,6 +22,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math"
+	"math/rand/v2"
 	"net"
 	"net/http"
 	"net/url"
@@ -170,6 +172,11 @@ func (cli *Client) GetRemoteAccessToken(ctx context.Context, req RemoteAccessTok
 
 // ConnectMulti establishes connections to multiple remote devices concurrently.
 func (cli *Client) ConnectMulti(ctx context.Context, connections []RemoteAccessConnection, allowFailures bool) error {
+	return cli.ConnectMultiRetry(ctx, connections, allowFailures, 1)
+}
+
+// ConnectMultiRetry establishes connections to multiple remote devices concurrently with retries.
+func (cli *Client) ConnectMultiRetry(ctx context.Context, connections []RemoteAccessConnection, allowFailures bool, retries int) error {
 	wg := sync.WaitGroup{}
 	errChan := make(chan error)
 	done := make(chan bool)
@@ -180,7 +187,7 @@ func (cli *Client) ConnectMulti(ctx context.Context, connections []RemoteAccessC
 		go func(connection RemoteAccessConnection) {
 			defer wg.Done()
 
-			if err := cli.ParseConnect(ctx, connection.DeviceID, connection.Targets); err != nil {
+			if err := cli.ParseConnectRetry(ctx, connection.DeviceID, connection.Targets, retries); err != nil {
 				errChan <- fmt.Errorf("error connecting to device %s: %w", connection.DeviceID, err)
 			}
 		}(conn)
@@ -206,6 +213,11 @@ func (cli *Client) ConnectMulti(ctx context.Context, connections []RemoteAccessC
 
 // ParseConnect parses a device ID and a list of targets and establishes a connection to the device.
 func (cli *Client) ParseConnect(ctx context.Context, deviceID string, targets []string) error {
+	return cli.ParseConnectRetry(ctx, deviceID, targets, 1)
+}
+
+// ParseConnectRetry parses a device ID and a list of targets and establishes a connection to the device with retries.
+func (cli *Client) ParseConnectRetry(ctx context.Context, deviceID string, targets []string, retries int) error {
 
 	if !IsValidDeviceID(deviceID) {
 		return fmt.Errorf("invalid device ID %s", deviceID)
@@ -226,7 +238,36 @@ func (cli *Client) ParseConnect(ctx context.Context, deviceID string, targets []
 		return fmt.Errorf("no targets defined for device %s", deviceID)
 	}
 
-	return cli.Connect(ctx, deviceID, parsedTargets)
+	if retries < 0 {
+		return fmt.Errorf("retries must be a positive number")
+	}
+
+	var err error
+	attempts := 0
+	baseTime := 5 * time.Second
+	maxBackoff := 1 * time.Minute
+	for {
+		err = cli.Connect(ctx, deviceID, parsedTargets)
+		backoff := time.Duration(math.Min(float64(baseTime)*math.Pow(2, float64(attempts)), float64(maxBackoff)))
+
+		if err != nil {
+			fmt.Printf("error connecting to device %s: %s\n", deviceID, err)
+		}
+
+		attempts++
+		// Exit if the maximum number of retries has been reached.
+		if attempts >= retries && retries > 0 {
+			break
+		}
+
+		jitter := time.Duration(rand.Float64() * float64(backoff) * 1)
+		nextBackoff := backoff + jitter
+		fmt.Printf("Attempt %d failed. Retrying in %v...\n", attempts, nextBackoff)
+		time.Sleep(nextBackoff)
+
+	}
+
+	return err
 }
 
 // connectStdio connects to the given target using stdin/stdout.
