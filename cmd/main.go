@@ -59,6 +59,7 @@ var Main = Command{
 		"config":  configCommand,
 		"run":     runAgentCommand,
 		"term":    terminalCommand,
+		"broker":  brokerCommand,
 	},
 }
 
