@@ -44,12 +44,12 @@ var brokerCommand = Command{
 			Default: "localhost",
 		},
 		{
-			Name:    "default-port",
+			Name:    "remote-port",
 			Help:    "Default port to connect to",
 			Default: "80",
 		},
 		{
-			Name:    "default-protocol",
+			Name:    "remote-protocol",
 			Help:    "Default protocol to use",
 			Default: "http",
 		},
@@ -57,18 +57,24 @@ var brokerCommand = Command{
 	OptionsHandler: func(opts Options) error {
 
 		if opts["username"] != "" {
-			os.Setenv("QBEE_USERNAME", opts["username"])
+			err := os.Setenv("QBEE_USERNAME", opts["username"])
+			if err != nil {
+				return err
+			}
 		}
 
 		if opts["password"] != "" {
-			os.Setenv("QBEE_PASSWORD", opts["password"])
+			err := os.Setenv("QBEE_PASSWORD", opts["password"])
+			if err != nil {
+				return err
+			}
 		}
 
 		if opts["base-url"] != "" {
 			os.Setenv("QBEE_BASEURL", opts["base-url"])
 		}
 
-		if os.Getenv("QBEE_PASSWoRD") == "" {
+		if os.Getenv("QBEE_PASSWORD") == "" {
 			return fmt.Errorf("no password provided")
 		}
 
@@ -92,15 +98,14 @@ var brokerCommand = Command{
 			s = s.WithAuthToken(opts["auth-token"])
 		}
 
-		if opts["default-port"] != "" {
+		if opts["remote-port"] != "" {
 			s = s.WithRemotePort(opts["remote-port"])
 		}
 
-		if opts["default-protocol"] != "" {
+		if opts["remote-protocol"] != "" {
 			s = s.WithRemoteProtocol(opts["remote-protocol"])
 		}
 
-		s.Start(ctx)
-		return nil
+		return s.Start(ctx)
 	},
 }

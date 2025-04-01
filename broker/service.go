@@ -17,17 +17,20 @@ import (
 )
 
 type Service struct {
-	client     *client.Client
-	authToken  string
-	remoteHost string
-	remotePort string
-	listenPort string
+	client         *client.Client
+	authToken      string
+	remoteHost     string
+	remotePort     string
+	remoteProtocol string
+	listenPort     string
 }
 
 const (
-	defaultConnectionTTL = 5 * time.Minute
-	defaultDevicePort    = "80"
-	defaultListenPort    = "8081"
+	defaultConnectionTTL  = 5 * time.Minute
+	defaultDevicePort     = "80"
+	defaultListenPort     = "8081"
+	defaultRemoteProtocol = "http"
+	defaultRemoteHost     = "localhost"
 )
 
 type Connection struct {
@@ -44,9 +47,9 @@ func NewService() *Service {
 
 	token := os.Getenv("QBEE_TOKEN")
 
-	remoteHost := os.Getenv("QBEE_REMOTE_HOST")
-	if remoteHost == "" {
-		remoteHost = "localhost"
+	remoteHost := defaultRemoteHost
+	if os.Getenv("QBEE_REMOTE_HOST") != "" {
+		remoteHost = os.Getenv("QBEE_REMOTE_HOST")
 	}
 
 	remotePort := defaultDevicePort
@@ -59,15 +62,21 @@ func NewService() *Service {
 		listenPort = os.Getenv("QBEE_LISTEN_PORT")
 	}
 
+	remoteProtocol := defaultRemoteProtocol
+	if os.Getenv("QBEE_REMOTE_PROTOCOL") != "" {
+		remoteProtocol = os.Getenv("QBEE_REMOTE_PROTOCOL")
+	}
+
 	return &Service{
-		authToken:  token,
-		remoteHost: remoteHost,
-		remotePort: remotePort,
-		listenPort: listenPort,
+		authToken:      token,
+		remoteHost:     remoteHost,
+		remotePort:     remotePort,
+		remoteProtocol: remoteProtocol,
+		listenPort:     listenPort,
 	}
 }
 
-func (s *Service) Start(ctx context.Context) {
+func (s *Service) Start(ctx context.Context) error {
 
 	// Sart a goroutine that re-authenticates the client every minute
 	go s.reAuthenticateClient(ctx)
@@ -82,9 +91,8 @@ func (s *Service) Start(ctx context.Context) {
 		log.Println("Warning: No authentication token provided. Device access will be open")
 	}
 
-	//log.Println("Starting server on :8081. Press CTRL+C to stop it.")
-	http.ListenAndServe(fmt.Sprintf(":%s", s.listenPort), router)
-
+	log.Println("Starting server on :8081. Press CTRL+C to stop it.")
+	return http.ListenAndServe(fmt.Sprintf(":%s", s.listenPort), router)
 }
 
 func (s *Service) WithPort(port string) *Service {
@@ -108,7 +116,7 @@ func (s *Service) WithRemotePort(port string) *Service {
 }
 
 func (s *Service) WithRemoteProtocol(protocol string) *Service {
-	s.remoteHost = protocol
+	s.remoteProtocol = protocol
 	return s
 }
 
@@ -144,7 +152,7 @@ func (s *Service) Proxy() http.HandlerFunc {
 
 		devicePort := r.Header.Get("X-Qbee-Device-Port")
 		if devicePort == "" {
-			devicePort = defaultDevicePort
+			devicePort = s.remotePort
 		}
 
 		localPort, err := s.doPortForwarding(ctx, deviceId, devicePort)
