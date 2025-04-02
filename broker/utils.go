@@ -2,13 +2,13 @@ package broker
 
 import (
 	"fmt"
-	"math/rand"
 	"net"
 	"net/http"
 	"strings"
 	"time"
 )
 
+// GetFreePort returns a free port
 func GetFreePort() (int, error) {
 	addr, err := net.ResolveTCPAddr("tcp", "localhost:0")
 	if err != nil {
@@ -23,6 +23,7 @@ func GetFreePort() (int, error) {
 	return l.Addr().(*net.TCPAddr).Port, nil
 }
 
+// waitForPort waits for a port to be open
 func waitForPort(port int, connectChan chan bool) {
 	for {
 		conn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", port))
@@ -35,16 +36,7 @@ func waitForPort(port int, connectChan chan bool) {
 	}
 }
 
-var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890")
-
-func randSeq(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(b)
-}
-
+// resolveDeviceId tries to resolve the device ID from the request headers or the hostname
 func resolveDeviceId(r *http.Request) (string, error) {
 	// try to get the device ID from the request headers
 	deviceId := r.Header.Get("X-Qbee-Device-Id")
@@ -60,6 +52,5 @@ func resolveDeviceId(r *http.Request) (string, error) {
 	if deviceId == "" {
 		return "", fmt.Errorf("no device ID provided")
 	}
-
 	return deviceId, nil
 }
