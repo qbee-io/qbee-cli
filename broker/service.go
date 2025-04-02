@@ -8,7 +8,6 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
-	"sync"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -23,46 +22,38 @@ type Service struct {
 	remotePort     string
 	remoteProtocol string
 	listenPort     string
+	connections    ConnectionsCache
 }
 
 const (
 	defaultConnectionTTL  = 5 * time.Minute
-	defaultDevicePort     = "80"
-	defaultListenPort     = "8081"
-	defaultRemoteProtocol = "http"
-	defaultRemoteHost     = "localhost"
+	DefaultListenPort     = "8081"
+	DefaultRemotePort     = "80"
+	DefaultRemoteProtocol = "http"
+	DefaultRemoteHost     = "localhost"
 )
 
-type Connection struct {
-	Cancel        context.CancelFunc
-	Port          int
-	LastConnected time.Time
-}
-
-var connectionMutex sync.Mutex
-
-var connections = make(map[string]Connection)
-
+// NewService creates a new broker service
 func NewService() *Service {
 
 	token := os.Getenv("QBEE_TOKEN")
 
-	remoteHost := defaultRemoteHost
+	remoteHost := DefaultRemoteHost
 	if os.Getenv("QBEE_REMOTE_HOST") != "" {
 		remoteHost = os.Getenv("QBEE_REMOTE_HOST")
 	}
 
-	remotePort := defaultDevicePort
+	remotePort := DefaultRemotePort
 	if os.Getenv("QBEE_REMOTE_PORT") != "" {
 		remotePort = os.Getenv("QBEE_REMOTE_PORT")
 	}
 
-	listenPort := defaultListenPort
+	listenPort := DefaultListenPort
 	if os.Getenv("QBEE_LISTEN_PORT") != "" {
 		listenPort = os.Getenv("QBEE_LISTEN_PORT")
 	}
 
-	remoteProtocol := defaultRemoteProtocol
+	remoteProtocol := DefaultRemoteProtocol
 	if os.Getenv("QBEE_REMOTE_PROTOCOL") != "" {
 		remoteProtocol = os.Getenv("QBEE_REMOTE_PROTOCOL")
 	}
@@ -73,15 +64,17 @@ func NewService() *Service {
 		remotePort:     remotePort,
 		remoteProtocol: remoteProtocol,
 		listenPort:     listenPort,
+		connections:    NewConnectionsCache(),
 	}
 }
 
+// Start starts the service
 func (s *Service) Start(ctx context.Context) error {
 
 	// Sart a goroutine that re-authenticates the client every minute
 	go s.reAuthenticateClient(ctx)
 	// Start garbage collector
-	go garbageCollector()
+	go s.garbageCollector()
 
 	router := chi.NewRouter()
 	router.Use(s.AuthMiddleware)
@@ -91,30 +84,35 @@ func (s *Service) Start(ctx context.Context) error {
 		log.Println("Warning: No authentication token provided. Device access will be open")
 	}
 
-	log.Println("Starting server on :8081. Press CTRL+C to stop it.")
+	log.Printf("Starting server on :%s. Press CTRL+C to stop it.", s.listenPort)
 	return http.ListenAndServe(fmt.Sprintf(":%s", s.listenPort), router)
 }
 
-func (s *Service) WithPort(port string) *Service {
-	s.listenPort = port
+// WithListenPort sets the port to listen on (default: 8081)
+func (s *Service) WithListenPort(listenPort string) *Service {
+	s.listenPort = listenPort
 	return s
 }
 
+// WithClient sets the client to use when connecting to the device
 func (s *Service) WithClient(client *client.Client) *Service {
 	s.client = client
 	return s
 }
 
+// WithAuthToken sets the auth token to use when connecting to the device
 func (s *Service) WithAuthToken(token string) *Service {
 	s.authToken = token
 	return s
 }
 
+// WithRemoteHost sets the host to use when connecting to the device (default: localhost)
 func (s *Service) WithRemotePort(port string) *Service {
 	s.remotePort = port
 	return s
 }
 
+// WithRemoteProtocol sets the protocol to use when connecting to the device (http or https)
 func (s *Service) WithRemoteProtocol(protocol string) *Service {
 	s.remoteProtocol = protocol
 	return s
@@ -186,11 +184,9 @@ func (s *Service) Proxy() http.HandlerFunc {
 // doPortForwarding establishes a port forwarding connection using random local port to the device on a specific port
 func (s *Service) doPortForwarding(ctx context.Context, deviceId, devicePort string) (int, error) {
 	connectionId := fmt.Sprintf("%s:%s", deviceId, devicePort)
-	if conn, ok := connections[connectionId]; ok {
-		connectionMutex.Lock()
-		defer connectionMutex.Unlock()
+	if conn, ok := s.connections.Get(connectionId); ok {
 		conn.LastConnected = time.Now()
-		connections[connectionId] = conn
+		s.connections.Add(connectionId, conn)
 		return conn.Port, nil
 	}
 
@@ -218,10 +214,28 @@ func (s *Service) doPortForwarding(ctx context.Context, deviceId, devicePort str
 
 	cancelCtx, cancelFunc := context.WithCancel(context.Background())
 	errChan := make(chan error)
+
+	// Connect to the device
 	go func() {
 		errChan <- s.client.Connect(cancelCtx, deviceNodeID, remoteTarget)
 	}()
 
+	// Clean up connection if device disconnects or context is cancelled
+	go func() {
+		defer func() {
+			cancelFunc()
+			s.connections.Remove(connectionId)
+		}()
+
+		select {
+		case <-cancelCtx.Done():
+			return
+		case <-errChan:
+			return
+		}
+	}()
+
+	// Wait for the port to be ready
 	portReady := make(chan bool)
 	go waitForPort(localPort, portReady)
 
@@ -231,6 +245,8 @@ func (s *Service) doPortForwarding(ctx context.Context, deviceId, devicePort str
 			cancelFunc()
 			return 0, err
 		}
+		log.Printf("do portforwarding: connection to device %s on port %s closed\n", deviceId, devicePort)
+
 	case isPortReady := <-portReady:
 		if !isPortReady {
 			cancelFunc()
@@ -238,13 +254,12 @@ func (s *Service) doPortForwarding(ctx context.Context, deviceId, devicePort str
 		}
 	}
 
-	connectionMutex.Lock()
-	defer connectionMutex.Unlock()
-	connections[connectionId] = Connection{
+	s.connections.Add(connectionId, Connection{
 		Cancel:        cancelFunc,
 		Port:          localPort,
 		LastConnected: time.Now(),
-	}
+	})
+
 	// return the local port if the connection was successful
 	return localPort, nil
 }
@@ -269,19 +284,10 @@ func (s *Service) reAuthenticateClient(ctx context.Context) {
 const garbageCollectorInterval = 1 * time.Minute
 
 // garbageCollector Clean up connections that have not been used for a while
-func garbageCollector() {
+func (s *Service) garbageCollector() {
 	for {
 		time.Sleep(garbageCollectorInterval)
-		for k, v := range connections {
-			if time.Since(v.LastConnected) > defaultConnectionTTL {
-				connectionMutex.Lock()
-				// Should do debug logging here
-				//log.Printf("Removing connection %s", k)
-				v.Cancel()
-				delete(connections, k)
-				connectionMutex.Unlock()
-			}
-		}
+		s.connections.CleanUp()
 	}
 }
 

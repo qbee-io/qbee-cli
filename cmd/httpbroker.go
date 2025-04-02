@@ -9,69 +9,83 @@ import (
 	"go.qbee.io/client/broker"
 )
 
+const (
+	brokerPasswordOption       = "password"
+	brokerUsernameOption       = "username"
+	brokerAuthTokenOption      = "auth-token"
+	brokerListenPortOption     = "listen-port"
+	brokerRemoteHostOption     = "remote-host"
+	brokerRemotePortOption     = "remote-port"
+	brokerRemoteProtocolOption = "remote-protocol"
+	brokerBaseUrlOption        = "base-url"
+)
+
 var brokerCommand = Command{
 	Description: "Start the http broker",
 	Options: []Option{
 		{
-			Name:    "port",
-			Short:   "p",
-			Help:    "Port to listen on",
-			Default: "8080",
-		},
-		{
-			Name:     "username",
+			Name:     brokerUsernameOption,
+			Short:    "u",
 			Help:     "Username for authentication",
 			Required: false,
 		},
 		{
-			Name:     "password",
+			Name:     brokerPasswordOption,
+			Short:    "p",
 			Help:     "Password for authentication",
 			Required: false,
 		},
 		{
-			Name:     "auth-token",
-			Help:     "Token for authentication",
-			Required: false,
-		},
-		{
-			Name:   "base-url",
+			Name:   brokerBaseUrlOption,
+			Short:  "b",
 			Help:   "Base URL for the broker",
 			Hidden: true,
 		},
 		{
-			Name:    "remote-host",
+			Name:     brokerAuthTokenOption,
+			Help:     "Token for authentication",
+			Required: false,
+		},
+		{
+			Name:    brokerListenPortOption,
+			Help:    "Port to listen on",
+			Default: broker.DefaultListenPort,
+		},
+		{
+			Name:    brokerRemoteHostOption,
 			Help:    "Remote host to connect to",
-			Default: "localhost",
+			Default: broker.DefaultRemoteHost,
 		},
 		{
-			Name:    "remote-port",
+			Name:    brokerRemotePortOption,
 			Help:    "Default port to connect to",
-			Default: "80",
+			Default: broker.DefaultRemotePort,
 		},
 		{
-			Name:    "remote-protocol",
+			Name:    brokerRemoteProtocolOption,
 			Help:    "Default protocol to use",
-			Default: "http",
+			Default: broker.DefaultRemoteProtocol,
+			Hidden:  true,
 		},
 	},
 	OptionsHandler: func(opts Options) error {
 
 		if opts["username"] != "" {
-			err := os.Setenv("QBEE_USERNAME", opts["username"])
+			err := os.Setenv("QBEE_USERNAME", opts[brokerUsernameOption])
 			if err != nil {
 				return err
 			}
 		}
 
 		if opts["password"] != "" {
-			err := os.Setenv("QBEE_PASSWORD", opts["password"])
+			err := os.Setenv("QBEE_PASSWORD", opts[brokerPasswordOption])
 			if err != nil {
 				return err
 			}
 		}
 
 		if opts["base-url"] != "" {
-			os.Setenv("QBEE_BASEURL", opts["base-url"])
+			os.Setenv("QBEE_BASEURL", opts[brokerBaseUrlOption])
 		}
 
 		if os.Getenv("QBEE_PASSWORD") == "" {
@@ -92,18 +106,18 @@ var brokerCommand = Command{
 			return err
 		}
 
-		s := broker.NewService().WithClient(cli).WithPort(opts["port"])
+		s := broker.NewService().WithClient(cli).WithListenPort(opts[brokerListenPortOption])
 
 		if opts["auth-token"] != "" {
-			s = s.WithAuthToken(opts["auth-token"])
+			s = s.WithAuthToken(opts[brokerAuthTokenOption])
 		}
 
 		if opts["remote-port"] != "" {
-			s = s.WithRemotePort(opts["remote-port"])
+			s = s.WithRemotePort(opts[brokerRemotePortOption])
 		}
 
 		if opts["remote-protocol"] != "" {
-			s = s.WithRemoteProtocol(opts["remote-protocol"])
+			s = s.WithRemoteProtocol(opts[brokerRemoteProtocolOption])
 		}
 
 		return s.Start(ctx)
