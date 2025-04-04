@@ -402,6 +402,7 @@ func (cli *Client) connect(ctx context.Context, deviceUUID, edgeHost string, tar
 	select {
 	case err := <-errChan:
 		smuxSession.Close()
+		fmt.Printf("Connection closed: %s\n", err)
 		return fmt.Errorf("session error for device %s: %w", deviceUUID, err)
 	case <-ctx.Done():
 		fmt.Printf("Connection closed\n")
