@@ -118,6 +118,20 @@ func (s *Service) WithRemoteProtocol(protocol string) *Service {
 	return s
 }
 
+// each session contains the username of the user and the time at which it expires
+type session struct {
+	expiry time.Time
+}
+
+var sessions = map[string]session{}
+var sessionTimeout = 4 * time.Hour
+var sessionCookieName = "session_token"
+
+// we'll use this method later to determine if the session has expired
+func (s session) isExpired() bool {
+	return s.expiry.Before(time.Now())
+}
+
 // AuthMiddleware is a middleware that checks for the presence of an auth token
 func (s *Service) AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -129,11 +143,41 @@ func (s *Service) AuthMiddleware(next http.Handler) http.Handler {
 
 		// Look for auth header
 		token := r.Header.Get("X-Qbee-Authorization")
-		if token != s.authToken {
-			http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		if token == s.authToken {
+			sessionToken := uuid.NewString()
+			expiresAt := time.Now().Add(sessionTimeout)
+
+			// Set the session in the session map
+			sessions[sessionToken] = session{
+				expiry: expiresAt,
+			}
+			cookie := &http.Cookie{
+				Name:     sessionCookieName,
+				Value:    sessionToken,
+				SameSite: http.SameSiteStrictMode,
+				Expires:  expiresAt,
+			}
+			// Set the cookie in the response
+			http.SetCookie(w, cookie)
+			// Set the session in the request context
+			next.ServeHTTP(w, r)
 			return
 		}
-		next.ServeHTTP(w, r)
+
+		c, err := r.Cookie(sessionCookieName)
+		if err == nil {
+			sessionToken := c.Value
+			userSession, exists := sessions[sessionToken]
+			if exists {
+				if !userSession.isExpired() {
+					next.ServeHTTP(w, r)
+					return
+				}
+				delete(sessions, sessionToken)
+			}
+		}
+
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
 	})
 }
 
@@ -177,7 +221,6 @@ func (s *Service) Proxy() http.HandlerFunc {
 		}
 
 		proxy.ServeHTTP(w, r)
-
 	}
 }
 
@@ -264,8 +307,8 @@ func (s *Service) doPortForwarding(ctx context.Context, deviceId, devicePort str
 	return localPort, nil
 }
 
-// Re-authenticate the client every minute
-const clientReAuthInterval = 10 * time.Minute
+// clientReAuthInterval is the interval at which the client will be re-authenticated
+const clientReAuthInterval = 4 * time.Hour
 
 // reAuthenticateClient re-authenticates the client periodically
 func (s *Service) reAuthenticateClient(ctx context.Context) {
