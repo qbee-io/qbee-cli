@@ -12,37 +12,25 @@ type Permission string
 // Role represents a role in the system.
 type Role struct {
 	// ID is the unique identifier of the role.
-	ID string `json:"id" bson:"_id"`
+	ID string `json:"id"`
 
 	// Name is the short name of the role.
-	Name string `json:"name" bson:"name"`
+	Name string `json:"name"`
 
 	// Description is the optional description of the role.
-	Description string `json:"description" bson:"description"`
+	Description string `json:"description"`
 
 	// Policies is the list of policies that are assigned to this role.
-	Policies []RolePolicy `json:"policies" bson:"policies"`
-
-	// CreatedAt is the timestamp of the creation of the role.
-	CreatedAt int64 `json:"created_at" bson:"created_at"`
-
-	// CreatedBy is the user ID that created the role.
-	CreatedBy string `json:"created_by" bson:"created_by"`
-
-	// UpdatedAt is the timestamp of the last update of the role.
-	UpdatedAt int64 `json:"updated_at,omitempty" bson:"updated_at,omitempty"`
-
-	// UpdatedBy is the user ID that last updated the role.
-	UpdatedBy string `json:"updated_by,omitempty" bson:"updated_by,omitempty"`
+	Policies []RolePolicy `json:"policies"`
 }
 
 // RolePolicy represents a policy that can be assigned to a role.
 type RolePolicy struct {
 	// Permission is the permission that is granted by this policy.
-	Permission Permission `json:"permission" bson:"permission"`
+	Permission Permission `json:"permission"`
 
 	// Resources is the list of resources that are affected by this policy.
-	Resources []string `json:"resources,omitempty" bson:"resources,omitempty"`
+	Resources []string `json:"resources,omitempty"`
 }
 
 const rolePath = "/api/v2/role"
@@ -99,10 +87,15 @@ const roleListPath = "/api/v2/roleslist"
 
 // ListRoles returns a list of all roles in the system.
 func (cli *Client) ListRoles(ctx context.Context) ([]Role, error) {
-	var roles []Role
-	if err := cli.Call(ctx, http.MethodGet, roleListPath, nil, &roles); err != nil {
+	var response struct {
+		Status string `json:"status"`
+		Total  int    `json:"total"`
+		Roles  []Role `json:"items"`
+	}
+
+	if err := cli.Call(ctx, http.MethodGet, roleListPath, nil, &response); err != nil {
 		return nil, err
 	}
 
-	return roles, nil
+	return response.Roles, nil
 }
