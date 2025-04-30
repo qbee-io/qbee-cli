@@ -8,7 +8,7 @@ import (
 // BootstrapKey represents a bootstrap key in the system.
 type BootstrapKey struct {
 	// ID is the actual bootstrap key.
-	ID string
+	ID string `json:"id"`
 	// GroupID is the group ID of associated with the bootstrap key.
 	GroupID string `json:"group_id,omitempty"`
 	// AutoAccept indicates whether the bootstrap key is auto accepted.
@@ -62,7 +62,7 @@ func (cli *Client) ListBootstrapKeys(ctx context.Context) (BootstrapKeyResponse,
 	return response, nil
 }
 
-// UpdateBoostrapKey in the system.
+// UpdateBootstrapKey in the system.
 func (cli *Client) UpdateBoostrapKey(ctx context.Context, key *BootstrapKey) error {
 	keyPath := bootstrapKeyPath + "/" + key.ID
 	return cli.Call(ctx, http.MethodPut, keyPath, key, nil)
