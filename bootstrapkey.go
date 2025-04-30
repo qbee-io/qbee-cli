@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+// BootstrapKey represents a bootstrap key in the system.
 type BootstrapKey struct {
 	// ID is the actual bootstrap key.
 	ID string
@@ -14,6 +15,7 @@ type BootstrapKey struct {
 	AutoAccept bool `json:"auto_accept"`
 }
 
+// BootstrapKeyResponse represents the response from the server when creating or updating a bootstrap key.
 type BootstrapKeyResponse map[string]BootstrapKey
 
 const bootstrapKeyPath = "/api/v2/bootstrapkey"

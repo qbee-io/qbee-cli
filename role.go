@@ -9,6 +9,7 @@ import (
 // Permission represents a permission in the system.
 type Permission string
 
+// Role represents a role in the system.
 type Role struct {
 	// ID is the unique identifier of the role.
 	ID string `json:"id" bson:"_id"`
