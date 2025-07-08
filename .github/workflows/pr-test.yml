@@ -13,7 +13,7 @@ jobs:
       - name: Setup Go
         uses: actions/setup-go@v4
         with:
-          go-version: 1.23.8
+          go-version: 1.23.10
       - name: Build and test
         env:
           QBEE_EMAIL: ${{ secrets.QBEE_API_USER }}
@@ -23,7 +23,7 @@ jobs:
       - id: govulncheck
         uses: golang/govulncheck-action@v1
         with:
-          go-version-input: 1.23.8
+          go-version-input: 1.23.10
           go-package: ./...
       - name: golint
         run: go run golang.org/x/lint/golint@latest ./...

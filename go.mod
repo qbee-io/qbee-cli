@@ -2,7 +2,7 @@ module go.qbee.io/client
 
 go 1.23.0
 
-toolchain go1.23.8
+toolchain go1.23.10
 
 require (
 	github.com/jpillora/chisel v1.10.0
