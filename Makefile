@@ -25,4 +25,4 @@ test:
 	go test ./...
 
 lint:
-	docker run --rm -v $(shell pwd):/app -w /app golangci/golangci-lint:v1.55.2 golangci-lint run
+	docker run --rm -v $(shell pwd):/app -w /app golangci/golangci-lint:v1.64.5 golangci-lint run
