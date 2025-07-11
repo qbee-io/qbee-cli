@@ -1,13 +1,13 @@
 module go.qbee.io/client
 
-go 1.23.0
+go 1.24.0
 
-toolchain go1.23.10
+toolchain go1.24.5
 
 require (
 	github.com/jpillora/chisel v1.10.1
 	github.com/xtaci/smux v1.5.34
-	go.qbee.io/transport v1.25.12
+	go.qbee.io/transport v1.25.28
 	golang.org/x/net v0.42.0
 	golang.org/x/term v0.33.0
 )
