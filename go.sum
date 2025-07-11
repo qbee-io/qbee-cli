@@ -12,8 +12,8 @@ github.com/jpillora/sizestr v1.0.0 h1:4tr0FLxs1Mtq3TnsLDV+GYUWG7Q26a6s+tV5Zfw2yg
 github.com/jpillora/sizestr v1.0.0/go.mod h1:bUhLv4ctkknatr6gR42qPxirmd5+ds1u7mzD+MZ33f0=
 github.com/xtaci/smux v1.5.34 h1:OUA9JaDFHJDT8ZT3ebwLWPAgEfE6sWo2LaTy3anXqwg=
 github.com/xtaci/smux v1.5.34/go.mod h1:OMlQbT5vcgl2gb49mFkYo6SMf+zP3rcjcwQz7ZU7IGY=
-go.qbee.io/transport v1.25.12 h1:MhQaLcV1fYVJHysC3jywWzk44vGP45sZoXJ339iGrlw=
-go.qbee.io/transport v1.25.12/go.mod h1:CnCOkjNyL0qfF3e6jaeXUtlCKxDxFEpc3Un+sFlZm9Y=
+go.qbee.io/transport v1.25.28 h1:S6X91ORNaRrPsNn3x80gQWAnX4jIyVXG76R8u6dLkKw=
+go.qbee.io/transport v1.25.28/go.mod h1:SBtAKI5/BjXrXYGRDT04gSjyZxQiuvRApSDeFWeelh4=
 golang.org/x/crypto v0.40.0 h1:r4x+VvoG5Fm+eJcxMaY8CQM7Lb0l1lsmjGBQ6s8BfKM=
 golang.org/x/crypto v0.40.0/go.mod h1:Qr1vMER5WyS2dfPHAlsOj01wgLbsyWtFn/aY+5+ZdxY=
 golang.org/x/net v0.42.0 h1:jzkYrhi3YQWD6MLBJcsklgQsoAcw89EcZbJw8Z614hs=

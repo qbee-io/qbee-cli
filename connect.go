@@ -278,7 +278,7 @@ func (cli *Client) connectStdio(ctx context.Context, client *transport.Client, t
 	if err != nil {
 		return fmt.Errorf("error opening stream: %w", err)
 	}
-	defer stream.Close()
+	defer func() { _ = stream.Close() }()
 
 	// copy from stdin to stream
 	go func() {
@@ -401,7 +401,7 @@ func (cli *Client) connect(ctx context.Context, deviceUUID, edgeHost string, tar
 
 	select {
 	case err := <-errChan:
-		smuxSession.Close()
+		_ = smuxSession.Close()
 		return fmt.Errorf("session error for device %s: %w", deviceUUID, err)
 	case <-ctx.Done():
 		fmt.Printf("Connection closed\n")
@@ -465,7 +465,7 @@ func (cli *Client) legacyConnect(ctx context.Context, deviceID string, targets [
 		return fmt.Errorf("error initializing remote access client: %w", err)
 	}
 
-	chiselClient.Logger.Info = false
+	chiselClient.Info = false
 	if err = chiselClient.Start(ctx); err != nil {
 		return err
 	}
@@ -557,7 +557,7 @@ func (cli *Client) ConnectTerminal(ctx context.Context, deviceID string, command
 		return fmt.Errorf("error opening shell stream: %w", err)
 	}
 
-	defer shellStream.Close()
+	defer func() { _ = shellStream.Close() }()
 
 	go console.ResizeConsole(ctx, client.GetSession(), string(sessionIDBytes), termStdinFd, termWidth, termHeight)
 

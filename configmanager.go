@@ -97,11 +97,12 @@ func (c *ConfigurationManager) Save(ctx context.Context, target, bundleName, con
 		Content:    configData,
 	}
 
-	if c.entityType == config.EntityTypeNode {
+	switch c.entityType {
+	case config.EntityTypeNode:
 		configChange.NodeID = target
-	} else if c.entityType == config.EntityTypeTag {
+	case config.EntityTypeTag:
 		configChange.Tag = target
-	} else {
+	default:
 		return fmt.Errorf("invalid entity type: %s", c.entityType)
 	}
 
