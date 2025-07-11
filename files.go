@@ -66,7 +66,7 @@ func (cli *Client) UploadFileReplace(ctx context.Context, path, name string, rep
 		return err
 	}
 
-	if _, err = part.Write([]byte(fmt.Sprintf("%t", replace))); err != nil {
+	if _, err = fmt.Fprintf(part, "%t", replace); err != nil {
 		return err
 	}
 
@@ -88,7 +88,7 @@ func (cli *Client) UploadFileReplace(ctx context.Context, path, name string, rep
 	if response, err = cli.DoWithRefresh(request); err != nil {
 		return err
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode >= http.StatusBadRequest {
 		var responseBody []byte
@@ -172,7 +172,7 @@ func (cli *Client) DownloadFile(ctx context.Context, name string) (io.ReadCloser
 	}
 
 	if response.StatusCode >= http.StatusBadRequest {
-		defer response.Body.Close()
+		defer func() { _ = response.Body.Close() }()
 
 		var responseBody []byte
 		if responseBody, err = io.ReadAll(response.Body); err != nil {

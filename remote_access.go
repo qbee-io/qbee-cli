@@ -66,7 +66,7 @@ func IsValidDeviceID(deviceID string) bool {
 
 	// iterate over every character and make sure it is a valid hex character
 	for _, c := range deviceID {
-		if !((c >= '0' && c <= '9') || (c >= 'a' && c <= 'f')) {
+		if (c < '0' || c > '9') && (c < 'a' || c > 'f') {
 			return false
 		}
 	}

@@ -191,7 +191,7 @@ func (cli *Client) Call(ctx context.Context, method, path string, src, dst any) 
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	var responseBody []byte
 	if responseBody, err = io.ReadAll(response.Body); err != nil {
@@ -257,7 +257,7 @@ func (cli *Client) RefreshToken(ctx context.Context) error {
 		return fmt.Errorf("error refreshing token: %w", err)
 	}
 
-	defer httpResponse.Body.Close()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	if httpResponse.StatusCode != http.StatusOK {
 		var responseBody []byte

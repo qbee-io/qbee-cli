@@ -417,7 +417,7 @@ func (m *FileManager) upload(ctx context.Context, file File, destPath string) er
 	if err != nil {
 		return err
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	if err := m.client.UploadFileReplace(ctx, destinationPath, baseName, true, reader); err != nil {
 		return err
@@ -443,7 +443,7 @@ func getFileDigest(src string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("error opening file %s: %w", src, err)
 	}
-	defer fp.Close()
+	defer func() { _ = fp.Close() }()
 
 	if _, err = fp.Stat(); err != nil {
 		return "", fmt.Errorf("error getting file metadata %s: %w", src, err)
@@ -463,7 +463,7 @@ func (m *FileManager) UploadFile(ctx context.Context, remotePath, localPath stri
 	if err != nil {
 		return err
 	}
-	defer reader.Close()
+	defer func() { _ = reader.Close() }()
 
 	return m.client.UploadFileReplace(ctx, remotePath, localPath, overwrite, reader)
 }
@@ -475,7 +475,7 @@ func (m *FileManager) DownloadFile(ctx context.Context, remotePath, localPath st
 		return err
 	}
 
-	defer writer.Close()
+	defer func() { _ = writer.Close() }()
 
 	reader, err := m.client.DownloadFile(ctx, remotePath)
 	if err != nil {
