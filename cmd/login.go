@@ -87,7 +87,7 @@ var loginCommand = Command{
 
 		// Check if user wants to print token instead of writing config
 		if opts[loginPrintToken] == "true" {
-			fmt.Print(cli.GetAuthToken())
+			fmt.Println(cli.GetAuthToken())
 			return nil
 		}
 
