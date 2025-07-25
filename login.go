@@ -107,22 +107,21 @@ func LoginReadConfig() (*LoginConfig, error) {
 
 // LoginGetAuthenticatedClient returns a new authenticated API Client.
 func LoginGetAuthenticatedClient(ctx context.Context) (*Client, error) {
+	cli := New()
+
+	if baseURL := os.Getenv("QBEE_BASEURL"); baseURL != "" {
+		cli = cli.WithBaseURL(baseURL)
+	}
+
 	// Check for QBEE_TOKEN first
 	if token := os.Getenv("QBEE_TOKEN"); token != "" {
-		cli := New()
-		if baseURL := os.Getenv("QBEE_BASEURL"); baseURL != "" {
-			cli = cli.WithBaseURL(baseURL)
-		}
 		return cli.WithAuthToken(token), nil
 	}
 
 	if os.Getenv("QBEE_EMAIL") != "" && os.Getenv("QBEE_PASSWORD") != "" {
 		email := os.Getenv("QBEE_EMAIL")
 		password := os.Getenv("QBEE_PASSWORD")
-		cli := New()
-		if os.Getenv("QBEE_BASEURL") != "" {
-			cli = cli.WithBaseURL(os.Getenv("QBEE_BASEURL"))
-		}
+
 		if err := cli.Authenticate(ctx, email, password); err != nil {
 			return nil, err
 		}
@@ -136,7 +135,7 @@ func LoginGetAuthenticatedClient(ctx context.Context) (*Client, error) {
 		return nil, err
 	}
 
-	client := New().WithBaseURL(config.BaseURL).
+	client := cli.WithBaseURL(config.BaseURL).
 		WithAuthToken(config.AuthToken).
 		WithRefreshToken(config.RefreshToken)
 
