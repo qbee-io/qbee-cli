@@ -19,13 +19,65 @@ go build -o qbee-cli ./cmd
 
 ## Providing credentials
 
-Currently, the only way to provide credentials is through environmental variables: `QBEE_EMAIL` & `QBEE_PASSWORD`. 
+qbee-cli supports multiple authentication methods to provide flexibility for different use cases:
 
-If your account is configured with two-factor authentication, you will either be prompted for which of your configured
-2FA providers you want to use, or you can set the `QBEE_2FA_CODE` environment variable to provide a code for the 
-Google provider directly.
+### 1. Interactive Login (Default)
 
-Please remember to rotate your credentials regularly.
+```shell
+qbee-cli login
+```
+
+This will prompt for your email and password interactively. If two-factor authentication is enabled, you'll be prompted to select a 2FA provider and enter the code.
+
+### 2. Environment Variables for Login
+
+You can provide credentials via environment variables to avoid interactive prompts:
+
+```shell
+export QBEE_EMAIL=alice@example.com
+export QBEE_PASSWORD=secret
+qbee-cli login
+```
+
+For accounts with two-factor authentication enabled, you can also set:
+
+```shell
+export QBEE_EMAIL=alice@example.com
+export QBEE_PASSWORD=secret
+export QBEE_2FA_CODE=123456
+qbee-cli login
+```
+
+### 3. Authentication Token (QBEE_TOKEN)
+
+For automated workflows and multiple command executions, you can use authentication tokens. First, obtain a token using the `--print-token` flag:
+
+```shell
+# Get a token and save it for reuse
+QBEE_TOKEN=$(QBEE_EMAIL=alice@example.com QBEE_PASSWORD=secret QBEE_2FA_CODE=123456 qbee-cli login --print-token)
+export QBEE_TOKEN
+```
+
+Then use the token for subsequent commands without needing to re-authenticate:
+
+```shell
+# Use the token for any qbee-cli command
+QBEE_TOKEN=your_token_here qbee-cli device list
+QBEE_TOKEN=your_token_here qbee-cli files list /
+```
+
+Or export it once and use multiple commands:
+
+```shell
+export QBEE_TOKEN=your_token_here
+qbee-cli device list
+qbee-cli files list /
+qbee-cli connect -d device123 -t 8080:localhost:80
+```
+
+**Note:** The `--print-token` flag prints the authentication token to stdout instead of writing the configuration file to disk, making it ideal for automation and CI/CD workflows.
+
+Please remember to rotate your credentials regularly and keep tokens secure.
 
 ## Run latest using Go
 
