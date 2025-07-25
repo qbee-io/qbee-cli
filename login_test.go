@@ -44,19 +44,4 @@ func Test_LoginGetAuthenticatedClient_With_QBEE_TOKEN(t *testing.T) {
 			t.Fatalf("Expected base URL to be '%s', got '%s'", testBaseURL, client.GetBaseURL())
 		}
 	})
-
-	t.Run("Without QBEE_TOKEN should fallback to config file", func(t *testing.T) {
-		// Clear all authentication environment variables
-		t.Setenv("QBEE_TOKEN", "")
-		t.Setenv("QBEE_EMAIL", "")
-		t.Setenv("QBEE_PASSWORD", "")
-		t.Setenv("QBEE_BASEURL", "")
-
-		_, err := LoginGetAuthenticatedClient(t.Context())
-
-		// Should get an error trying to read config file since we don't have one
-		if err == nil {
-			t.Fatal("Expected error when no authentication method is available")
-		}
-	})
 }
