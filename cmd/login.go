@@ -14,6 +14,7 @@ const (
 	loginUserEmail    = "email"
 	loginUserPassword = "password"
 	loginBaseURL      = "base-url"
+	loginPrintToken   = "print-token"
 )
 
 // Login is the login command.
@@ -39,6 +40,11 @@ var loginCommand = Command{
 			Help:    "Qbee.io base URL.",
 			Default: "https://www.app.qbee.io",
 			Hidden:  true,
+		},
+		{
+			Name: loginPrintToken,
+			Help: "Print the authentication token to stdout instead of writing configuration file.",
+			Flag: "true",
 		},
 	},
 	Target: func(opts Options) error {
@@ -77,6 +83,12 @@ var loginCommand = Command{
 
 		if err := cli.Authenticate(ctx, email, password); err != nil {
 			return err
+		}
+
+		// Check if user wants to print token instead of writing config
+		if opts[loginPrintToken] == "true" {
+			fmt.Print(cli.GetAuthToken())
+			return nil
 		}
 
 		loginConfig := client.LoginConfig{
