@@ -24,13 +24,13 @@ var loginCommand = Command{
 		{
 			Name:     loginUserEmail,
 			Short:    "u",
-			Help:     "User email.",
-			Required: true,
+			Help:     "User email. Can also be set via QBEE_EMAIL environment variable.",
+			Required: false,
 		},
 		{
 			Name:     loginUserPassword,
 			Short:    "p",
-			Help:     "User password.",
+			Help:     "User password. Can also be set via QBEE_PASSWORD environment variable.",
 			Required: false,
 		},
 		{
@@ -42,9 +42,24 @@ var loginCommand = Command{
 		},
 	},
 	Target: func(opts Options) error {
-		email := opts[loginUserEmail]
-		password := opts[loginUserPassword]
+		// Check for environment variables first
+		email := os.Getenv("QBEE_EMAIL")
+		password := os.Getenv("QBEE_PASSWORD")
+		
+		// Use command line options if environment variables are not set
+		if email == "" {
+			email = opts[loginUserEmail]
+		}
+		if password == "" {
+			password = opts[loginUserPassword]
+		}
+		
 		baseURL := opts[loginBaseURL]
+
+		// Validate that we have required information
+		if email == "" {
+			return fmt.Errorf("email is required: provide via --email parameter or QBEE_EMAIL environment variable")
+		}
 
 		ctx := context.Background()
 		cli := client.New().WithBaseURL(baseURL)
