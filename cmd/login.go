@@ -51,7 +51,8 @@ var loginCommand = Command{
 		// Check for environment variables first
 		email := os.Getenv("QBEE_EMAIL")
 		password := os.Getenv("QBEE_PASSWORD")
-		
+		baseURL := os.Getenv("QBEE_BASEURL")
+
 		// Use command line options if environment variables are not set
 		if email == "" {
 			email = opts[loginUserEmail]
@@ -59,8 +60,9 @@ var loginCommand = Command{
 		if password == "" {
 			password = opts[loginUserPassword]
 		}
-		
-		baseURL := opts[loginBaseURL]
+		if baseURL == "" {
+			baseURL = opts[loginBaseURL]
+		}
 
 		// Validate that we have required information
 		if email == "" {

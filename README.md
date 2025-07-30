@@ -48,6 +48,15 @@ export QBEE_2FA_CODE=123456
 qbee-cli login
 ```
 
+If you need to authenticate against a different qbee.io instance, you can set the `QBEE_BASEURL` environment variable:
+
+```shell
+export QBEE_EMAIL=alice@example.com
+export QBEE_PASSWORD=secret
+export QBEE_BASEURL=https://www.app.qbee.example.com
+qbee-cli login
+```
+
 ### 3. Authentication Token (QBEE_TOKEN)
 
 For automated workflows and multiple command executions, you can use authentication tokens. First, obtain a token using the `--print-token` flag:
