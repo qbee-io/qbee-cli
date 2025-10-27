@@ -48,10 +48,10 @@ type Role struct {
 	// UpdatedAt is the timestamp of the last update of the role.
 	UpdatedAt int64 `json:"updated_at,omitempty"`
 
-	// UpdatedBy is the user information of the user that last updated the role
+	// UpdatedBy is the user information of the user that last updated the role.
 	UpdatedBy *UserBaseInfo `json:"updated_by,omitempty"`
 
-	// UsedBy is the list of users using this role
+	// UsedBy is the list of users using this role.
 	UsedBy []UserBaseInfo `json:"used_by"`
 }
 
