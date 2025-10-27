@@ -42,16 +42,16 @@ type Role struct {
 	// CreatedAt is the timestamp of the creation of the role.
 	CreatedAt int64 `json:"created_at"`
 
-	// CreatedBy is the user ID that created the role.
+	// CreatedBy is the user information of the user that created the role.
 	CreatedBy *UserBaseInfo `json:"created_by"`
 
 	// UpdatedAt is the timestamp of the last update of the role.
 	UpdatedAt int64 `json:"updated_at,omitempty"`
 
-	// UpdatedBy is the user ID that last updated the role.
+	// UpdatedBy is the user information of the user that last updated the role
 	UpdatedBy *UserBaseInfo `json:"updated_by,omitempty"`
 
-	// this fields are not in the DB, but are populated when needed
+	// list of users using this role
 	UsedBy []UserBaseInfo `json:"used_by"`
 }
 
