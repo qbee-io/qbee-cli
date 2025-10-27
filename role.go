@@ -51,7 +51,7 @@ type Role struct {
 	// UpdatedBy is the user information of the user that last updated the role
 	UpdatedBy *UserBaseInfo `json:"updated_by,omitempty"`
 
-	// list of users using this role
+	// UsedBy is the list of users using this role
 	UsedBy []UserBaseInfo `json:"used_by"`
 }
 
