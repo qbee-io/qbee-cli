@@ -17,7 +17,6 @@
 package client
 
 const (
-
 	// Analysis Section
 	AnalysisRead Permission = "analysis:read"
 
