@@ -22,8 +22,7 @@ import (
 	"net/http"
 )
 
-// Permission represents a permission in the system.
-type Permission string
+
 
 // Role represents a role in the system.
 type Role struct {
