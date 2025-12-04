@@ -1,15 +1,13 @@
 module go.qbee.io/client
 
-go 1.24.0
-
-toolchain go1.24.5
+go 1.25.5
 
 require (
-	github.com/jpillora/chisel v1.10.1
-	github.com/xtaci/smux v1.5.34
+	github.com/jpillora/chisel v1.11.3
+	github.com/xtaci/smux v1.5.44
 	go.qbee.io/transport v1.25.28
-	golang.org/x/net v0.42.0
-	golang.org/x/term v0.33.0
+	golang.org/x/net v0.47.0
+	golang.org/x/term v0.37.0
 )
 
 require (
@@ -18,8 +16,8 @@ require (
 	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/jpillora/backoff v1.0.0 // indirect
 	github.com/jpillora/sizestr v1.0.0 // indirect
-	golang.org/x/crypto v0.40.0 // indirect
-	golang.org/x/sync v0.16.0 // indirect
-	golang.org/x/sys v0.34.0 // indirect
-	golang.org/x/text v0.27.0 // indirect
+	golang.org/x/crypto v0.45.0 // indirect
+	golang.org/x/sync v0.18.0 // indirect
+	golang.org/x/sys v0.38.0 // indirect
+	golang.org/x/text v0.31.0 // indirect
 )
