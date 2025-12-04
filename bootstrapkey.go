@@ -62,8 +62,14 @@ func (cli *Client) ListBootstrapKeys(ctx context.Context) (BootstrapKeyResponse,
 	return response, nil
 }
 
-// UpdateBootstrapKey in the system.
+// UpdateBoostrapKey in the system.
+// DEPRECATED: Use UpdateBootstrapKey instead.
 func (cli *Client) UpdateBoostrapKey(ctx context.Context, key *BootstrapKey) error {
+	return cli.UpdateBootstrapKey(ctx, key)
+}
+
+// UpdateBootstrapKey in the system.
+func (cli *Client) UpdateBootstrapKey(ctx context.Context, key *BootstrapKey) error {
 	keyPath := bootstrapKeyPath + "/" + key.ID
 	return cli.Call(ctx, http.MethodPut, keyPath, key, nil)
 }
