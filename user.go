@@ -16,6 +16,11 @@
 
 package client
 
+import (
+	"bytes"
+	"encoding/json"
+)
+
 // UserBaseInfo is the base information of a user.
 type UserBaseInfo struct {
 	// ID is the unique identifier of the user.
@@ -26,4 +31,30 @@ type UserBaseInfo struct {
 
 	// LastName is the last name of the user.
 	LastName string `json:"lname"`
+}
+
+// UnmarshalJSON implements custom unmarshalling to handle backward compatibility
+// where UserBaseInfo could be represented as a string (user ID) or as an object.
+func (u *UserBaseInfo) UnmarshalJSON(data []byte) error {
+	// Check if data is a quoted string.
+	if bytes.HasPrefix(data, []byte{0x22}) && bytes.HasSuffix(data, []byte{0x22}) {
+		var userID string
+		if err := json.Unmarshal(data, &userID); err != nil {
+			return err
+		}
+		*u = UserBaseInfo{ID: userID}
+		return nil
+	}
+
+	// Otherwise, unmarshal as the full object.
+	type Alias UserBaseInfo
+
+	var alias Alias
+	if err := json.Unmarshal(data, &alias); err != nil {
+		return err
+	}
+
+	*u = UserBaseInfo(alias)
+
+	return nil
 }
