@@ -53,7 +53,7 @@ func (c *Client) OAuth2DeviceAuthorizationRequest(ctx context.Context) (*OAuth2D
 		return nil, err
 	}
 
-	defer httpResponse.Body.Close()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	responseBody, err := io.ReadAll(httpResponse.Body)
 	if err != nil {
@@ -122,7 +122,7 @@ func (c *Client) OAuth2GetTokenForDeviceCode(ctx context.Context, deviceCode str
 		return nil, err
 	}
 
-	defer httpResponse.Body.Close()
+	defer func() { _ = httpResponse.Body.Close() }()
 
 	responseBody, err := io.ReadAll(httpResponse.Body)
 	if err != nil {
@@ -202,9 +202,9 @@ func (c *Client) InteractiveOAuth2DeviceAuthorizationFlow(ctx context.Context) e
 		case ErrOAuth2AuthorizationPending:
 			continue
 		case ErrOAuth2AuthorizationDeclined:
-			return fmt.Errorf("Authorization was declined by the user.")
+			return fmt.Errorf("authorization was declined by the user")
 		case ErrOAuth2ExpiredToken:
-			return fmt.Errorf("Authorization request has expired.")
+			return fmt.Errorf("authorization request has expired")
 		default:
 			return err
 		}
