@@ -1,3 +1,19 @@
+// Copyright 2026 qbee.io
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// SPDX-License-Identifier: Apache-2.0
+
 package client
 
 import (
@@ -101,7 +117,7 @@ var (
 
 const oauth2TokenPath = "/oauth2/token"
 
-// OAuth2GetToken retrieves the OAuth2 token using the provided device code.
+// OAuth2GetTokenForDeviceCode retrieves the OAuth2 token using the provided device code.
 // It handles specific error responses related to the device authorization flow - retry or fail accordingly.
 func (c *Client) OAuth2GetTokenForDeviceCode(ctx context.Context, deviceCode string) (*OAuth2TokenResponse, error) {
 	payload := url.Values{
@@ -186,8 +202,7 @@ func (c *Client) InteractiveOAuth2DeviceAuthorizationFlow(ctx context.Context) e
 	fmt.Printf("And verify that the code  %s  is shown before authorization.\n", deviceAuth.UserCode)
 	fmt.Println("")
 
-	startTime := time.Now()
-	expirationTime := startTime.Add(time.Duration(deviceAuth.ExpiresIn) * time.Second)
+	expirationTime := time.Now().Add(time.Duration(deviceAuth.ExpiresIn) * time.Second)
 	pollingDuration := time.Duration(deviceAuth.Interval) * time.Second
 
 	for time.Now().Before(expirationTime) {
@@ -201,6 +216,8 @@ func (c *Client) InteractiveOAuth2DeviceAuthorizationFlow(ctx context.Context) e
 			return nil
 		case ErrOAuth2AuthorizationPending:
 			continue
+		case ErrOAuth2BadVerificationCode:
+			return fmt.Errorf("invalid verification code provided")
 		case ErrOAuth2AuthorizationDeclined:
 			return fmt.Errorf("authorization was declined by the user")
 		case ErrOAuth2ExpiredToken:
@@ -210,5 +227,5 @@ func (c *Client) InteractiveOAuth2DeviceAuthorizationFlow(ctx context.Context) e
 		}
 	}
 
-	return nil
+	return fmt.Errorf("authorization timed out while waiting for user approval")
 }

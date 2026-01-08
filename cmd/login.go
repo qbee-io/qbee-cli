@@ -105,7 +105,7 @@ var loginCommand = Command{
 			return err
 		}
 
-		fmt.Printf("Successfully authenticated!\n")
+		fmt.Println("Successfully authenticated!")
 		return nil
 	},
 }
