@@ -64,27 +64,29 @@ var loginCommand = Command{
 			baseURL = opts[loginBaseURL]
 		}
 
-		// Validate that we have required information
-		if email == "" {
-			return fmt.Errorf("email is required: provide via --email parameter or QBEE_EMAIL environment variable")
-		}
-
 		ctx := context.Background()
 		cli := client.New().WithBaseURL(baseURL)
 
-		if password == "" {
-			fmt.Printf("Enter password for %s: ", email)
-			bytePassword, err := term.ReadPassword(int(os.Stdin.Fd()))
-			if err != nil {
+		// Validate that we have required information
+		if email == "" {
+			if err := cli.InteractiveOAuth2DeviceAuthorizationFlow(ctx); err != nil {
 				return err
 			}
-			// Print a newline to simulate the enter key press
-			fmt.Println()
-			password = strings.TrimSpace(string(bytePassword))
-		}
+		} else {
+			if password == "" {
+				fmt.Printf("Enter password for %s: ", email)
+				bytePassword, err := term.ReadPassword(int(os.Stdin.Fd()))
+				if err != nil {
+					return err
+				}
+				// Print a newline to simulate the enter key press
+				fmt.Println()
+				password = strings.TrimSpace(string(bytePassword))
+			}
 
-		if err := cli.Authenticate(ctx, email, password); err != nil {
-			return err
+			if err := cli.Authenticate(ctx, email, password); err != nil {
+				return err
+			}
 		}
 
 		// Check if user wants to print token instead of writing config
@@ -103,7 +105,7 @@ var loginCommand = Command{
 			return err
 		}
 
-		fmt.Printf("Successfully logged in as %s\n", email)
+		fmt.Printf("Successfully authenticated!\n")
 		return nil
 	},
 }
