@@ -213,7 +213,7 @@ type InventoryListSearch struct {
 	// NodeID - device public key digest (hex-encoded SHA256)
 	NodeID string `json:"node_id,omitempty"`
 
-	// UUID - device UUID (legacy identifier used by the remote access subsystem)
+	// UUID - device UUID
 	UUID string `json:"uuid,omitempty"`
 
 	// Title - fqhost, remoteaddr or device title (can be set in the attributes)
@@ -369,7 +369,7 @@ type InventoryListItem struct {
 	// PubKeyDigest - same as NodeID (for backwards compatibility)
 	PubKeyDigest string `json:"pub_key_digest"`
 
-	// UUID - device UUID (legacy identifier used by the remote access subsystem)
+	// UUID - device UUID
 	UUID string `json:"uuid"`
 
 	// System - system inventory.
