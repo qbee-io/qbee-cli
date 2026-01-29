@@ -1,6 +1,6 @@
 module go.qbee.io/client
 
-go 1.25.5
+go 1.25.6
 
 require (
 	github.com/xtaci/smux v1.5.44
