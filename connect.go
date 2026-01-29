@@ -25,6 +25,8 @@ import (
 	"math"
 	"math/rand/v2"
 	"net"
+	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"sync"
@@ -35,6 +37,105 @@ import (
 
 	"golang.org/x/term"
 )
+
+// RemoteAccessConnectionInfo contains parameters used to establish a remote access connection.
+type RemoteAccessConnectionInfo struct {
+	// URL of the remote access server. If empty, a legacy URL will be used.
+	URL string `json:"url"`
+
+	// VPNIndex is the legacy VPN index to use for the connection.
+	VPNIndex string `json:"vpn_idx"`
+
+	// Username is the username to use for authentication.
+	Username string `json:"username"`
+
+	// Password is the password to use for authentication.
+	Password string `json:"password"`
+
+	// Address is the internal device address client is connecting to.
+	Address string `json:"address"`
+}
+
+// RemoteAccessToken contains remote console
+type RemoteAccessToken struct {
+	// Title is the title of the device.
+	Title string `json:"title"`
+
+	// Connection contains the connection details.
+	Connection RemoteAccessConnectionInfo `json:"connection"`
+}
+
+// AuthString returns the authentication string for the remote access token.
+func (token RemoteAccessToken) AuthString() string {
+	return fmt.Sprintf("%s:%s", token.Connection.Username, token.Connection.Password)
+}
+
+// RemoteAccessTokenResponse is the response returned by the API when requesting a remote console token.
+type RemoteAccessTokenResponse map[string]RemoteAccessToken
+
+// RemoteAccessTokenRequest is the request sent to the API when requesting a remote console token.
+type RemoteAccessTokenRequest struct {
+	// DeviceID is the PublicKeyDigest of the device for which the token is requested.
+	// Required.
+	DeviceID string
+
+	// Application is the name of the application for which the token is requested.
+	// Optional - defaults to "qbee-cli".
+	Application string
+
+	// Username is the username for which the token is requested.
+	// Setting this value will allow to identify the user in the audit log.
+	// Optional.
+	Username string
+
+	// Ports is the list of ports for which the token is requested.
+	// Setting this value will allow to identify requested ports in the audit log.
+	// Optional.
+	Ports []string
+}
+
+// remoteAccessTokenV2Path is the path of the remote access token API.
+// First argument is the device ID, second argument is the URL-encoded query string.
+const remoteAccessTokenV2Path = "/api/v2/remoteconsoletokenv2/%s?%s"
+
+// GetRemoteAccessToken returns a remote console token for the specified device.
+func (cli *Client) GetRemoteAccessToken(ctx context.Context, req RemoteAccessTokenRequest) (*RemoteAccessToken, error) {
+	if req.DeviceID == "" {
+		return nil, fmt.Errorf("device ID is required")
+	}
+
+	if req.Application == "" {
+		req.Application = Name
+	}
+
+	urlValues := url.Values{}
+	urlValues.Set("app_name", req.Application)
+
+	if req.Username != "" {
+		urlValues.Set("username", req.Username)
+	}
+
+	if len(req.Ports) > 0 {
+		jsonEncodedPorts, err := json.Marshal(req.Ports)
+		if err != nil {
+			return nil, fmt.Errorf("error encoding ports: %w", err)
+		}
+
+		urlValues.Set("ports", string(jsonEncodedPorts))
+	}
+
+	path := fmt.Sprintf(remoteAccessTokenV2Path, req.DeviceID, urlValues.Encode())
+
+	response := make(RemoteAccessTokenResponse)
+
+	if err := cli.Call(ctx, http.MethodGet, path, nil, &response); err != nil {
+		return nil, err
+	}
+
+	remoteAccessToken := response[req.DeviceID]
+
+	return &remoteAccessToken, nil
+}
 
 // ConnectMulti establishes connections to multiple remote devices concurrently.
 func (cli *Client) ConnectMulti(ctx context.Context, connections []RemoteAccessConnection, allowFailures bool) error {
