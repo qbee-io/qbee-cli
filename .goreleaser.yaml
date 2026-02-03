@@ -24,8 +24,8 @@ builds:
 
     mod_timestamp: "{{ .CommitTimestamp }}"
 
-gomod:
-  proxy: true
+# gomod:
+  # proxy: true
 
 changelog:
   use: github-native
