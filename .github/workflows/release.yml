@@ -2,8 +2,8 @@ name: release
 
 on:
   push:
-    tags:
-      - "v1.*"
+    branches:
+      - main
 
 permissions:
   contents: write # needed to write releases
