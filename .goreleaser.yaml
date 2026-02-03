@@ -5,6 +5,8 @@ project_name: qbee-cli
 builds:
   - id: qbee-cli
 
+    main: ./cmd/
+
     env:
       - CGO_ENABLED=0
 
