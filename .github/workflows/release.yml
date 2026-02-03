@@ -1,9 +1,8 @@
 name: release
 
 on:
-  push:
-    branches:
-      - main
+  release:
+    types: [prereleased]
 
 permissions:
   contents: write # needed to write releases
