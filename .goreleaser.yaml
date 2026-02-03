@@ -53,17 +53,14 @@ signs:
 source:
   enabled: true
 
-archives:
-   - formats: [ 'tar.gz' ]
-
 notarize:
-  macos_native:
+  macos:
     - enabled: "true"
       sign:
-        keychain: "{{ .Env.KEYCHAIN_PATH }}"
-        identity: "{{ .Env.MACOS_SIGN_IDENTITY }}"
-        options: [runtime]
+        certificate: "{{ .Env.MACOS_SIGN_P12 }}"
+        password: "{{.Env.MACOS_SIGN_PASSWORD}}"
 
       notarize:
-        profile_name: "{{ .Env.MACOS_NOTARY_PROFILE_NAME }}"
-        wait: true
+        issuer_id: "{{.Env.MACOS_NOTARY_ISSUER_ID}}"
+        key_id: "{{.Env.MACOS_NOTARY_KEY_ID}}"
+        key: "{{.Env.MACOS_NOTARY_KEY}}"
