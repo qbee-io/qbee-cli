@@ -1,0 +1,67 @@
+version: 2
+
+project_name: qbee-cli
+
+builds:
+  - id: qbee-cli
+
+    env:
+      - CGO_ENABLED=0
+
+    gcflags:
+      - -trimpath
+
+    ldflags:
+      - -s 
+      - -w 
+      - -X go.qbee.io/client.Version={{.Version}}
+
+    targets:
+      - darwin_amd64
+      - darwin_arm64
+      - windows_amd64
+      - linux_amd64
+
+    mod_timestamp: "{{ .CommitTimestamp }}"
+
+gomod:
+  proxy: true
+
+changelog:
+  use: github-native
+
+sboms:
+  - artifacts: source
+
+checksum:
+  name_template: checksums.txt
+
+signs:
+  - cmd: cosign
+    certificate: "${artifact}.pem"
+    args:
+      - sign-blob
+      - "--output-certificate=${certificate}"
+      - "--output-signature=${signature}"
+      - "${artifact}"
+      - "--yes"
+    artifacts: checksum
+    output: true
+
+source:
+  enabled: true
+
+archives:
+   - formats: [ 'tar.gz' ]
+
+notarize:
+  macos_native:
+    - enabled: "true"
+      sign:
+        keychain: "{{ .Env.KEYCHAIN_PATH }}"
+        identity: "{{ .Env.MACOS_SIGN_IDENTITY }}"
+        options: [runtime]
+
+      notarize:
+        profile_name: "{{ .Env.MACOS_NOTARY_PROFILE_NAME }}"
+        wait: true
