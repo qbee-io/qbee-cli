@@ -5,7 +5,6 @@ on:
     tags:
       - "v1.*"
 
-
 permissions:
   contents: write # needed to write releases
   id-token: write # needed for keyless signing
