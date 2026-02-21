@@ -14,6 +14,7 @@ set -eu
 
 # Script Configuration
 APP_PATH=qbee-cli
+ZIP_PATH=${1}
 KEYCHAIN_TTL=300 # 5 minutes
 
 # Temporary working directory for keychain and certificate handling
@@ -40,6 +41,10 @@ fi
 
 if [ -z "${APPLE_CODE_NOTARY_PASSWORD:-}" ]; then
     die "APPLE_CODE_NOTARY_PASSWORD must be set to the password for the Apple ID for notarization"
+fi
+
+if [ -z "${ZIP_PATH:-}" ]; then
+    die "$1 must be set to the path of the zip file (e.g., qbee-cli_darwin_amd64.zip)"
 fi
 
 CERT_P12_PATH=${WORKDIR}/cert.p12
@@ -93,6 +98,8 @@ security list-keychains -d user -s $KEYCHAIN_PATH login.keychain
 info "Signing $APP_PATH with $MACOS_SIGN_IDENTITY certificate"
 codesign --keychain $KEYCHAIN_PATH --force --options runtime --entitlements .github/utils/entitlements.plist --sign "$MACOS_SIGN_IDENTITY" --timestamp $APP_PATH
 
+ditto -c -k --keepParent $APP_PATH $ZIP_PATH
+
 info "Storing notarization credentials in keychain for notarytool"
 xcrun notarytool store-credentials "notarytool-password" \
                 --keychain "$KEYCHAIN_PATH" \
@@ -101,4 +108,7 @@ xcrun notarytool store-credentials "notarytool-password" \
                 --team-id "$APPLE_TEAM_ID"
 
 info "Notarizing binary with Apple Notary Service"
-xcrun notarytool submit --keychain-profile "notarytool-password" --wait "$APP_PATH"
+xcrun notarytool submit --keychain-profile "notarytool-password" --wait "$ZIP_PATH"
+
+info "Stapling notarization ticket to Zip file"
+xcrun stapler staple "$ZIP_PATH"

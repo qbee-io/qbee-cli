@@ -170,12 +170,9 @@ jobs:
           # APPLE_CODE_NOTARY_PASSWORD is the password for the Apple ID used for notarization
           APPLE_CODE_NOTARY_PASSWORD: ${{ secrets.APPLE_CODE_NOTARY_PASSWORD }}
 
-        run: bash ./.github/utils/mac-sign-and-notarize.sh
+        run: bash ./.github/utils/mac-sign-and-notarize.sh ${{ env.NAME }}_darwin_${{ matrix.arch }}.zip
 
-      - name: Upload DMG to the release
+      - name: Upload Zip archive to the release
         env:
           GH_TOKEN: ${{ github.token }}
-          ARCHIVE_NAME: ${{ env.NAME }}_darwin_${{ matrix.arch }}.zip
-        run: |
-          ditto -c -k --keepParent ${{ env.NAME }} ${{ env.ARCHIVE_NAME }}
-          gh release upload ${{ env.VERSION }} ${{ env.ARCHIVE_NAME }} --clobber
+        run: gh release upload ${{ env.VERSION }} ${{ env.NAME }}_darwin_${{ matrix.arch }}.zip --clobber
