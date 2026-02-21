@@ -8,6 +8,9 @@ permissions:
 on:
   release:
     types: [prereleased]
+  pull_request:
+    branches:
+      - main
 
 env:
   # VERSION is set to the release tag name, e.g., "v1.0.0".
