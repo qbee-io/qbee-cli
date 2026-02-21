@@ -109,6 +109,3 @@ xcrun notarytool store-credentials "notarytool-password" \
 
 info "Notarizing binary with Apple Notary Service"
 xcrun notarytool submit --keychain-profile "notarytool-password" --wait "$ZIP_PATH"
-
-info "Stapling notarization ticket to Zip file"
-xcrun stapler staple "$ZIP_PATH"

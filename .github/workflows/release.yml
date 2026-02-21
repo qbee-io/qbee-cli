@@ -48,8 +48,6 @@ jobs:
     name: Linux Binaries
     runs-on: ubuntu-24.04
     needs: go-proxy
-    outputs:
-      amd64_sha256: ${{ steps.release.outputs.amd64_sha256 }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -65,14 +63,13 @@ jobs:
         run: go build $GCFLAGS -ldflags "$LDFLAGS" -o ${{ env.NAME }} ./cmd
 
       - name: Create archive and upload to the release
-        id: release
+        id: reease
         env:
           GH_TOKEN: ${{ github.token }}
           ARCHIVE_NAME: ${{ env.NAME }}_linux_amd64_${{ env.VERSION }}.tar.gz
         run: |
           tar -czvf $ARCHIVE_NAME ${{ env.NAME }} LICENSE README.md
-          gh release upload ${{ env.VERSION }} $ARCHIVE_NAME
-          echo "amd64_sha256=$(sha256sum ${{ env.NAME }})" >> $GITHUB_OUTPUT
+          gh release upload ${{ env.VERSION }} $ARCHIVE_NAME --clobber
 
   windows:
     name: Windows Signed Binary
@@ -86,8 +83,6 @@ jobs:
       SM_API_KEY: ${{ secrets.SM_API_KEY }}
       SM_CLIENT_CERT_FILE: Certificate_pkcs12.p12
       SM_CLIENT_CERT_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
-    outputs:
-      amd64_sha256: ${{ steps.release.outputs.amd64_sha256 }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -116,15 +111,13 @@ jobs:
           input: ${{ env.NAME }}.exe
 
       - name: Create archive and upload to the release
-        id: release
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
           ARCHIVE_NAME: ${{ env.NAME }}_windows_amd64_${{ env.VERSION }}.zip
         run: |
           7z a $ARCHIVE_NAME ${{ env.NAME }}.exe LICENSE README.md
-          gh release upload ${{ env.VERSION }} $ARCHIVE_NAME
-          echo "amd64_sha256=$(sha256sum ${{ env.ARCHIVE_NAME }})" >> $GITHUB_OUTPUT
+          gh release upload ${{ env.VERSION }} $ARCHIVE_NAME --clobber
 
   macos:
     name: MacOS Signed Binary
@@ -133,9 +126,6 @@ jobs:
     strategy:
       matrix:
         arch: [amd64, arm64]
-    outputs:
-      amd64_sha256: ${{ steps.release.outputs.amd64_sha256 }}
-      arm64_sha256: ${{ steps.release.outputs.arm64_sha256 }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -175,4 +165,5 @@ jobs:
       - name: Upload Zip archive to the release
         env:
           GH_TOKEN: ${{ github.token }}
-        run: gh release upload ${{ env.VERSION }} ${{ env.NAME }}_darwin_${{ matrix.arch }}.zip --clobber
+          ARCHIVE_NAME: ${{ env.NAME }}_darwin_${{ matrix.arch }}.zip
+        run: gh release upload ${{ env.VERSION }} ${{ env.ARCHIVE_NAME }} --clobber
