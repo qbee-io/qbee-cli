@@ -42,7 +42,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Populate Go module proxy cache
-        run: go get go.qbee.io/client@${{ env.VERSION }} > /dev/null
+        run: go install go.qbee.io/client@${{ env.VERSION }} > /dev/null
 
   linux:
     name: Linux Binaries
