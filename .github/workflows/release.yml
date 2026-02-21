@@ -8,14 +8,10 @@ permissions:
 on:
   release:
     types: [prereleased]
-  pull_request:
-    branches:
-      - main
 
 env:
   # VERSION is set to the release tag name, e.g., "v1.0.0".
-  #VERSION: ${{ github.ref_name }}
-  VERSION: v1.2026.8
+  VERSION: ${{ github.ref_name }}
 
   # NAME is the name of the application.
   NAME: qbee-cli
@@ -28,8 +24,7 @@ env:
 
   # LDFLAGS with -s and -w reduces the binary size by omitting symbol table and debug information.
   # The -X flag sets the Version variable in the code to the release version.
-  # DFLAGS: -s -w -X go.qbee.io/client.Version=${{ github.ref_name }}
-  LDFLAGS: -s -w -X go.qbee.io/client.Version=v1.2026.8
+  DFLAGS: -s -w -X go.qbee.io/client.Version=${{ github.ref_name }}
 
   # GOPROXY ensures that we use the correct Go module proxy.
   # We want our build process to start with populateding the Go proxy
@@ -66,7 +61,7 @@ jobs:
         id: reease
         env:
           GH_TOKEN: ${{ github.token }}
-          ARCHIVE_NAME: ${{ env.NAME }}_linux_amd64_${{ env.VERSION }}.tar.gz
+          ARCHIVE_NAME: ${{ env.NAME }}_linux_amd64.tar.gz
         run: |
           tar -czvf $ARCHIVE_NAME ${{ env.NAME }} LICENSE README.md
           gh release upload ${{ env.VERSION }} $ARCHIVE_NAME
@@ -114,7 +109,7 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-          ARCHIVE_NAME: ${{ env.NAME }}_windows_amd64_${{ env.VERSION }}.zip
+          ARCHIVE_NAME: ${{ env.NAME }}_windows_amd64.zip
         run: |
           7z a $ARCHIVE_NAME ${{ env.NAME }}.exe LICENSE README.md
           gh release upload ${{ env.VERSION }} $ARCHIVE_NAME
@@ -160,10 +155,10 @@ jobs:
           # APPLE_CODE_NOTARY_PASSWORD is the password for the Apple ID used for notarization
           APPLE_CODE_NOTARY_PASSWORD: ${{ secrets.APPLE_CODE_NOTARY_PASSWORD }}
 
-        run: bash ./.github/utils/mac-sign-and-notarize.sh ${{ env.NAME }}_darwin_${{ matrix.arch }}_${{ env.VERSION }}.zip
+        run: bash ./.github/utils/mac-sign-and-notarize.sh ${{ env.NAME }}_darwin_${{ matrix.arch }}.zip
 
       - name: Upload Zip archive to the release
         env:
           GH_TOKEN: ${{ github.token }}
-          ARCHIVE_NAME: ${{ env.NAME }}_darwin_${{ matrix.arch }}_${{ env.VERSION }}.zip
+          ARCHIVE_NAME: ${{ env.NAME }}_darwin_${{ matrix.arch }}.zip
         run: gh release upload ${{ env.VERSION }} ${{ env.ARCHIVE_NAME }}
