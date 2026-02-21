@@ -98,7 +98,8 @@ security list-keychains -d user -s $KEYCHAIN_PATH login.keychain
 info "Signing $APP_PATH with $MACOS_SIGN_IDENTITY certificate"
 codesign --keychain $KEYCHAIN_PATH --force --options runtime --entitlements .github/utils/entitlements.plist --sign "$MACOS_SIGN_IDENTITY" --timestamp $APP_PATH
 
-ditto -c -k --keepParent $APP_PATH $ZIP_PATH
+info "Creating zip archive for notarization"
+zip -r $ZIP_PATH $APP_PATH README.md LICENSE
 
 info "Storing notarization credentials in keychain for notarytool"
 xcrun notarytool store-credentials "notarytool-password" \

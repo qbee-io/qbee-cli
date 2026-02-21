@@ -69,7 +69,7 @@ jobs:
           ARCHIVE_NAME: ${{ env.NAME }}_linux_amd64_${{ env.VERSION }}.tar.gz
         run: |
           tar -czvf $ARCHIVE_NAME ${{ env.NAME }} LICENSE README.md
-          gh release upload ${{ env.VERSION }} $ARCHIVE_NAME --clobber
+          gh release upload ${{ env.VERSION }} $ARCHIVE_NAME
 
   windows:
     name: Windows Signed Binary
@@ -117,7 +117,7 @@ jobs:
           ARCHIVE_NAME: ${{ env.NAME }}_windows_amd64_${{ env.VERSION }}.zip
         run: |
           7z a $ARCHIVE_NAME ${{ env.NAME }}.exe LICENSE README.md
-          gh release upload ${{ env.VERSION }} $ARCHIVE_NAME --clobber
+          gh release upload ${{ env.VERSION }} $ARCHIVE_NAME
 
   macos:
     name: MacOS Signed Binary
@@ -160,10 +160,10 @@ jobs:
           # APPLE_CODE_NOTARY_PASSWORD is the password for the Apple ID used for notarization
           APPLE_CODE_NOTARY_PASSWORD: ${{ secrets.APPLE_CODE_NOTARY_PASSWORD }}
 
-        run: bash ./.github/utils/mac-sign-and-notarize.sh ${{ env.NAME }}_darwin_${{ matrix.arch }}.zip
+        run: bash ./.github/utils/mac-sign-and-notarize.sh ${{ env.NAME }}_darwin_${{ matrix.arch }}_${{ env.VERSION }}.zip
 
       - name: Upload Zip archive to the release
         env:
           GH_TOKEN: ${{ github.token }}
-          ARCHIVE_NAME: ${{ env.NAME }}_darwin_${{ matrix.arch }}.zip
-        run: gh release upload ${{ env.VERSION }} ${{ env.ARCHIVE_NAME }} --clobber
+          ARCHIVE_NAME: ${{ env.NAME }}_darwin_${{ matrix.arch }}_${{ env.VERSION }}.zip
+        run: gh release upload ${{ env.VERSION }} ${{ env.ARCHIVE_NAME }}
