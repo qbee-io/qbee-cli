@@ -1,0 +1,164 @@
+name: Release qbee-cli on GitHub
+
+permissions:
+  contents: write # needed to write releases
+  id-token: write # needed for keyless signing
+  attestations: write # needed for provenance
+
+on:
+  release:
+    types: [prereleased]
+
+env:
+  # VERSION is set to the release tag name, e.g., "v1.0.0".
+  VERSION: ${{ github.ref_name }}
+
+  # NAME is the name of the application.
+  NAME: qbee-cli
+
+  # CGO_ENABLED disables CGO.
+  CGO_ENABLED: 0
+
+  # GCFLAGS with -trimpath ensures that the build is reproducible and does not contain file system paths.
+  GCFLAGS: -trimpath
+
+  # LDFLAGS with -s and -w reduces the binary size by omitting symbol table and debug information.
+  # The -X flag sets the Version variable in the code to the release version.
+  DFLAGS: -s -w -X go.qbee.io/client.Version=${{ github.ref_name }}
+
+  # GOPROXY ensures that we use the correct Go module proxy.
+  # We want our build process to start with populateding the Go proxy
+  # with the freshly tagged version of the module.
+  GOPROXY: https://proxy.golang.org
+
+jobs:
+  go-proxy:
+    name: Go Proxy
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Populate Go module proxy cache
+        run: go list -m go.qbee.io/client@${{ env.VERSION }}
+
+  linux:
+    name: Linux Binaries
+    runs-on: ubuntu-24.04
+    needs: go-proxy
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install stable Go version
+        uses: actions/setup-go@v6
+        with:
+          go-version: stable
+
+      - name: Build binary
+        run: go build $GCFLAGS -ldflags "$LDFLAGS" -o ${{ env.NAME }} ./cmd
+
+      - name: Create archive and upload to the release
+        id: reease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARCHIVE_NAME: ${{ env.NAME }}_linux_amd64.tar.gz
+        run: |
+          tar -czvf $ARCHIVE_NAME ${{ env.NAME }} LICENSE README.md
+          gh release upload ${{ env.VERSION }} $ARCHIVE_NAME
+
+  windows:
+    name: Windows Signed Binary
+    runs-on: windows-2025
+    needs: go-proxy
+    env:
+      # The following environment variables are needed for the DigiCert Software Trust signing action.
+      # https://docs.digicert.com/en/digicert-keylocker/ci-cd-integrations-and-deployment-pipelines/plugins/github/binary-signing-using-github-actions.html
+      # Following credentials are from Qbee GitHub Actions service user account.
+      SM_HOST: ${{ vars.SM_HOST }}
+      SM_API_KEY: ${{ secrets.SM_API_KEY }}
+      SM_CLIENT_CERT_FILE: Certificate_pkcs12.p12
+      SM_CLIENT_CERT_PASSWORD: ${{ secrets.SM_CLIENT_CERT_PASSWORD }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install stable Go version
+        uses: actions/setup-go@v6
+        with:
+          go-version: stable
+
+      - name: Setup DigiCert KeyLocker
+        shell: bash
+        run: |
+          echo "${{ secrets.SM_CLIENT_CERT_FILE_B64 }}" | base64 --decode > ${{ env.SM_CLIENT_CERT_FILE }}
+
+      - name: Build binary
+        shell: bash
+        run: go build $GCFLAGS -ldflags "$LDFLAGS" -o ${{ env.NAME }}.exe ./cmd
+
+      - name: Sign the binary
+        uses: digicert/code-signing-software-trust-action@v1
+        with:
+          simple-signing-mode: true
+          keypair-alias: ${{ secrets.SM_KEYPAIR_ALIAS }}
+          input: ${{ env.NAME }}.exe
+
+      - name: Create archive and upload to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARCHIVE_NAME: ${{ env.NAME }}_windows_amd64.zip
+        run: |
+          7z a $ARCHIVE_NAME ${{ env.NAME }}.exe LICENSE README.md
+          gh release upload ${{ env.VERSION }} $ARCHIVE_NAME
+
+  macos:
+    name: MacOS Signed Binary
+    runs-on: macos-26
+    needs: go-proxy
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: Install stable Go version
+        uses: actions/setup-go@v6
+        with:
+          go-version: stable
+
+      - name: Build binary for ${{ matrix.arch }}
+        env:
+          GOARCH: ${{ matrix.arch }}
+        run: go build $GCFLAGS -ldflags "$LDFLAGS" -o ${{ env.NAME }} ./cmd
+
+      - name: Sign and package
+        env:
+          TMPDIR: ${{ runner.temp }}
+
+          # MACOS_SIGN_P12 is the base64-encoded .p12 certificate file for Developer ID Application certificate type.
+          # The certificate can be created and downloaded from the Apple Developer account, Certificates section.
+          MACOS_SIGN_P12: ${{ secrets.MACOS_SIGN_P12 }}
+
+          # MACOS_SIGN_PASSWORD is the password for the .p12 certificate file.
+          MACOS_SIGN_PASSWORD: ${{ secrets.MACOS_SIGN_PASSWORD }}
+
+          # APPLE_CODE_NOTARY_EMAIL is the Apple ID used for notarization.
+          # The user needs to have App Manager role.
+          APPLE_CODE_NOTARY_EMAIL: ${{ secrets.APPLE_CODE_NOTARY_EMAIL }}
+
+          # APPLE_CODE_NOTARY_PASSWORD is the password for the Apple ID used for notarization
+          APPLE_CODE_NOTARY_PASSWORD: ${{ secrets.APPLE_CODE_NOTARY_PASSWORD }}
+
+        run: bash ./.github/utils/mac-sign-and-notarize.sh ${{ env.NAME }}_darwin_${{ matrix.arch }}.zip
+
+      - name: Upload Zip archive to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          ARCHIVE_NAME: ${{ env.NAME }}_darwin_${{ matrix.arch }}.zip
+        run: gh release upload ${{ env.VERSION }} ${{ env.ARCHIVE_NAME }}
