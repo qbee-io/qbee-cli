@@ -65,7 +65,8 @@ type CommitRequest struct {
 	// Message describing changes in the commit.
 	Message string `json:"message"`
 
-	// Changes is the list of changes' SHA that are part of the commit.
+	// Changes is the list of change requests to be committed.
+	// If not provided, all uncommitted changes will be included in the commit.
 	Changes []ChangeRequest `json:"changes,omitempty"`
 }
 
