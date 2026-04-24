@@ -66,7 +66,7 @@ type CommitRequest struct {
 	Message string `json:"message"`
 
 	// Changes is the list of changes' SHA that are part of the commit.
-	Changes []Change `json:"changes,omitempty"`
+	Changes []ChangeRequest `json:"changes,omitempty"`
 }
 
 // CommitConfiguration commits uncommitted changes with provided message.
