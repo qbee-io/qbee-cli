@@ -65,12 +65,13 @@ type CommitRequest struct {
 	// Message describing changes in the commit.
 	Message string `json:"message"`
 
-	// Changes is the list of changes' SHA that are part of the commit.
-	Changes []Change `json:"changes,omitempty"`
+	// Changes is the list of change requests to be committed.
+	// If not provided, all uncommitted changes will be included in the commit.
+	Changes []ChangeRequest `json:"changes,omitempty"`
 }
 
 // CommitConfiguration commits uncommitted changes with provided message.
-func (cli *Client) CommitConfiguration(ctx context.Context, message string, changes ...Change) (*Commit, error) {
+func (cli *Client) CommitConfiguration(ctx context.Context, message string, changes ...ChangeRequest) (*Commit, error) {
 	const path = "/api/v2/commit"
 
 	request := CommitRequest{
