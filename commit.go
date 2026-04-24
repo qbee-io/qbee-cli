@@ -62,22 +62,23 @@ type Commit struct {
 
 // CommitRequest is a request to commit uncommitted changes.
 type CommitRequest struct {
-	// Action must be always set to "commit".
-	Action string `json:"action"`
-
 	// Message describing changes in the commit.
 	Message string `json:"message"`
+
+	// Changes is the list of changes' SHA that are part of the commit.
+	Changes []Change `json:"changes,omitempty"`
 }
 
-const commitAction = "commit"
-
 // CommitConfiguration commits uncommitted changes with provided message.
-func (cli *Client) CommitConfiguration(ctx context.Context, message string) (*Commit, error) {
+func (cli *Client) CommitConfiguration(ctx context.Context, message string, changes ...Change) (*Commit, error) {
 	const path = "/api/v2/commit"
 
 	request := CommitRequest{
-		Action:  commitAction,
 		Message: message,
+	}
+
+	if len(changes) > 0 {
+		request.Changes = changes
 	}
 
 	auditCommit := new(Commit)
