@@ -70,7 +70,7 @@ type CommitRequest struct {
 }
 
 // CommitConfiguration commits uncommitted changes with provided message.
-func (cli *Client) CommitConfiguration(ctx context.Context, message string, changes ...Change) (*Commit, error) {
+func (cli *Client) CommitConfiguration(ctx context.Context, message string, changes ...ChangeRequest) (*Commit, error) {
 	const path = "/api/v2/commit"
 
 	request := CommitRequest{
