@@ -22,6 +22,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/url"
+	"strconv"
+	"strings"
 
 	"go.qbee.io/client/config"
 	"go.qbee.io/client/types"
@@ -206,6 +208,36 @@ type DeviceInventory struct {
 	// PushedConfig contains the configuration that is expected to be on the device.
 	// See ConfigPropagated to check if the device has already received it.
 	PushedConfig config.Pushed `json:"pushed_config"`
+}
+
+// IsMinimumAgentVersion checks if the device is running at least the specified agent version.
+func (di DeviceInventory) IsMinimumAgentVersion(requiredVersion string) bool {
+	requiredVersionParts := strings.Split(requiredVersion, ".")
+	agentVersionParts := strings.Split(di.SystemInfo.AgentVersion, ".")
+
+	for i := range requiredVersionParts {
+		if i >= len(agentVersionParts) {
+			return false
+		}
+
+		if requiredVersionParts[i] == agentVersionParts[i] {
+			continue
+		}
+
+		requiredVersionPartInt, err := strconv.Atoi(requiredVersionParts[i])
+		if err != nil {
+			return false
+		}
+
+		agentVersionPartInt, err := strconv.Atoi(agentVersionParts[i])
+		if err != nil {
+			return false
+		}
+
+		return agentVersionPartInt > requiredVersionPartInt
+	}
+
+	return true
 }
 
 // InventoryListSearch defines search parameters for InventoryListQuery.

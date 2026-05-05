@@ -111,6 +111,42 @@ Where:
 - `remoteHost` must be set to _localhost_
 - `remotePort` is the remote port on which tunnel will connect to on the device
 
+## Copy files directly to or from a device
+
+Copy files to a device:
+
+```shell
+qbee-cli copy local_file.txt <deviceID>:/remote/path/file.txt
+```
+
+Copy files from a device:
+
+```shell
+qbee-cli copy <deviceID>:/remote/path/file.txt local_file.txt
+```
+
+Copy directories recursively to a device:
+
+```shell
+qbee-cli copy /local/directory/ <deviceID>:/remote/directory/
+```
+
+Copy directories recursively from a device:
+
+```shell
+qbee-cli copy <deviceID>:/remote/directory/ /local/directory/
+```
+
+Where:
+- `deviceID` is the device public key digest
+- Source and destination are specified as `[<deviceID>:]<path>`
+- Exactly one of source or destination must be remote (on a device)
+- **Files**: Individual files are copied as-is
+- **Directories**: Entire directory trees are copied recursively, preserving the directory structure
+- **Requirements**: Device must be running agent version 2026.19 or higher
+
+
+
 # Use as a Go module
 
 ```go
