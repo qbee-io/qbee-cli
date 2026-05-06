@@ -498,3 +498,41 @@ func readerLoop(in io.Reader, out io.Writer, errChan chan error) {
 
 	}
 }
+
+// UploadFileToDevice uploads a file directly to a remote device.
+func (cli *Client) UploadFileToDevice(ctx context.Context, deviceID, localPath, remotePath string) error {
+	deviceInfo, err := cli.GetDeviceInventory(ctx, deviceID)
+	if err != nil {
+		return err
+	}
+
+	if !deviceInfo.IsMinimumAgentVersion("2026.19") {
+		return fmt.Errorf("file upload requires agent version 2026.19 or higher")
+	}
+
+	client, err := cli.getConnectClient(ctx, deviceID)
+	if err != nil {
+		return err
+	}
+
+	return client.UploadFile(ctx, localPath, remotePath)
+}
+
+// DownloadFileFromDevice downloads a file directly from a remote device.
+func (cli *Client) DownloadFileFromDevice(ctx context.Context, deviceID, remotePath, localPath string) error {
+	deviceInfo, err := cli.GetDeviceInventory(ctx, deviceID)
+	if err != nil {
+		return err
+	}
+
+	if !deviceInfo.IsMinimumAgentVersion("2026.19") {
+		return fmt.Errorf("file download requires agent version 2026.19 or higher")
+	}
+
+	client, err := cli.getConnectClient(ctx, deviceID)
+	if err != nil {
+		return err
+	}
+
+	return client.DownloadFile(ctx, remotePath, localPath)
+}
