@@ -52,7 +52,7 @@ jobs:
       - name: Install stable Go version
         uses: actions/setup-go@v6
         with:
-          go-version: stable
+          go-version-file: go.mod
 
       - name: Build binary
         run: go build $GCFLAGS -ldflags "$LDFLAGS" -o ${{ env.NAME }} ./cmd
@@ -87,7 +87,7 @@ jobs:
       - name: Install stable Go version
         uses: actions/setup-go@v6
         with:
-          go-version: stable
+          go-version-file: go.mod
 
       - name: Setup DigiCert KeyLocker
         shell: bash
@@ -130,7 +130,7 @@ jobs:
       - name: Install stable Go version
         uses: actions/setup-go@v6
         with:
-          go-version: stable
+          go-version-file: go.mod
 
       - name: Build binary for ${{ matrix.arch }}
         env:
