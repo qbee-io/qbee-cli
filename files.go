@@ -17,7 +17,6 @@
 package client
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -38,46 +37,56 @@ func (cli *Client) UploadFile(ctx context.Context, path, name string, reader io.
 
 // UploadFileReplace a file to the file-manager if replace is set to true
 func (cli *Client) UploadFileReplace(ctx context.Context, path, name string, replace bool, reader io.Reader) error {
-	buf := new(bytes.Buffer)
-	multipartWriter := multipart.NewWriter(buf)
+	pipeReader, pipeWriter := io.Pipe()
 
-	partHeaders := make(textproto.MIMEHeader)
-	partHeaders.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, name))
-	partHeaders.Set("Content-Type", "")
+	multipartWriter := multipart.NewWriter(pipeWriter)
 
-	part, err := multipartWriter.CreatePart(partHeaders)
-	if err != nil {
-		return err
-	}
+	go func() {
+		var err error
 
-	if _, err = io.Copy(part, reader); err != nil {
-		return err
-	}
+		defer func() {
+			_ = pipeWriter.CloseWithError(err)
+		}()
 
-	if part, err = multipartWriter.CreateFormField("path"); err != nil {
-		return err
-	}
+		partHeaders := make(textproto.MIMEHeader)
+		partHeaders.Set("Content-Disposition", fmt.Sprintf(`form-data; name="file"; filename="%s"`, name))
+		partHeaders.Set("Content-Type", "")
 
-	if _, err = part.Write([]byte(path)); err != nil {
-		return err
-	}
+		var part io.Writer
 
-	if part, err = multipartWriter.CreateFormField("replace"); err != nil {
-		return err
-	}
+		if part, err = multipartWriter.CreatePart(partHeaders); err != nil {
+			return
+		}
 
-	if _, err = fmt.Fprintf(part, "%t", replace); err != nil {
-		return err
-	}
+		if _, err = io.Copy(part, reader); err != nil {
+			return
+		}
 
-	if err = multipartWriter.Close(); err != nil {
-		return err
-	}
+		if part, err = multipartWriter.CreateFormField("path"); err != nil {
+			return
+		}
+
+		if _, err = part.Write([]byte(path)); err != nil {
+			return
+		}
+
+		if part, err = multipartWriter.CreateFormField("replace"); err != nil {
+			return
+		}
+
+		if _, err = fmt.Fprintf(part, "%t", replace); err != nil {
+			return
+		}
+
+		if err = multipartWriter.Close(); err != nil {
+			return
+		}
+	}()
 
 	requestURL := cli.baseURL + filePath
 
-	var request *http.Request
-	if request, err = http.NewRequestWithContext(ctx, http.MethodPost, requestURL, buf); err != nil {
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, requestURL, pipeReader)
+	if err != nil {
 		return err
 	}
 
