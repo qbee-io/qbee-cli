@@ -24,7 +24,7 @@ env:
 
   # LDFLAGS with -s and -w reduces the binary size by omitting symbol table and debug information.
   # The -X flag sets the Version variable in the code to the release version.
-  DFLAGS: -s -w -X go.qbee.io/client.Version=${{ github.ref_name }}
+  LDFLAGS: -s -w -X go.qbee.io/client.Version=${{ github.ref_name }}
 
   # GOPROXY ensures that we use the correct Go module proxy.
   # We want our build process to start with populateding the Go proxy
