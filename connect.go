@@ -18,7 +18,6 @@ package client
 
 import (
 	"context"
-	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -28,7 +27,6 @@ import (
 	"net/http"
 	"net/url"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -271,15 +269,7 @@ func (cli *Client) getConnectClient(ctx context.Context, deviceID string) (*tran
 
 	edgeURL := fmt.Sprintf("https://%s/device/%s", deviceStatus.Edge, deviceStatus.UUID)
 
-	var tlsConfig *tls.Config
-
-	if strings.HasPrefix(deviceStatus.Edge, "edge:") || strings.HasPrefix(deviceStatus.Edge, "localhost:") {
-		tlsConfig = &tls.Config{
-			InsecureSkipVerify: true,
-		}
-	}
-
-	client, err := transport.NewClient(ctx, edgeURL, cli.authToken, tlsConfig)
+	client, err := transport.NewClient(ctx, edgeURL, cli.authToken, edgeTLSConfig(deviceStatus.Edge))
 	if err != nil {
 		return nil, fmt.Errorf("error initializing remote access client: %w", err)
 	}
@@ -291,20 +281,11 @@ func (cli *Client) getConnectClient(ctx context.Context, deviceID string) (*tran
 func (cli *Client) connect(ctx context.Context, deviceUUID, edgeHost string, targets []RemoteAccessTarget) error {
 	edgeURL := fmt.Sprintf("https://%s/device/%s", edgeHost, deviceUUID)
 
-	var tlsConfig *tls.Config
-
-	// for testing purposes, allow connections to localhost without verifying the certificate
-	if strings.HasPrefix(edgeHost, "edge:") || strings.HasPrefix(edgeHost, "localhost:") {
-		tlsConfig = &tls.Config{
-			InsecureSkipVerify: true,
-		}
-	}
-
 	if len(targets) == 0 {
 		return fmt.Errorf("no targets defined")
 	}
 
-	client, err := transport.NewClient(ctx, edgeURL, cli.authToken, tlsConfig)
+	client, err := transport.NewClient(ctx, edgeURL, cli.authToken, edgeTLSConfig(edgeHost))
 	if err != nil {
 		return fmt.Errorf("error initializing remote access client: %w", err)
 	}
