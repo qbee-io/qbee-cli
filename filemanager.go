@@ -465,7 +465,9 @@ func (m *FileManager) UploadFile(ctx context.Context, remotePath, localPath stri
 	}
 	defer func() { _ = reader.Close() }()
 
-	return m.client.UploadFileReplace(ctx, remotePath, localPath, overwrite, reader)
+	// Send only the name of the file - the API doesn't strip Windows directories from the name,
+	// so the full local path would otherwise end up as the name of the remote file.
+	return m.client.UploadFileReplace(ctx, remotePath, filepath.Base(localPath), overwrite, reader)
 }
 
 // DownloadFile downloads a file from the FileManager.
