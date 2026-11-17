@@ -103,6 +103,9 @@ func preparePathMatchList(patterns string) []regexp.Regexp {
 
 	for _, pathPattern := range patternsList {
 		pathPattern = strings.TrimLeft(pathPattern, "/")
+		// patterns are matched against paths using forward slashes on every system,
+		// so on Windows a pattern can use either of the separators
+		pathPattern = filepath.ToSlash(pathPattern)
 		pathPattern = regexp.QuoteMeta(pathPattern)
 
 		pathRE := regexp.MustCompile(pathPattern)
@@ -298,7 +301,7 @@ func (m *FileManager) matchExcludes(path string) bool {
 		return false
 	}
 
-	return matchRElist(path, m.excludes)
+	return matchRElist(filepath.ToSlash(path), m.excludes)
 }
 
 // matchIncludes determines if a path matches any of the include filters.
@@ -307,7 +310,7 @@ func (m *FileManager) matchIncludes(basePath, path string) bool {
 		return false
 	}
 
-	if !matchRElist(path, m.includes) {
+	if !matchRElist(filepath.ToSlash(path), m.includes) {
 		return false
 	}
 
