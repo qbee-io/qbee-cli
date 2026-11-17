@@ -31,3 +31,17 @@ jobs:
         run: go run golang.org/x/lint/golint@latest ./...
       - name: govet
         run: go vet ./...
+
+  # Runs the unit tests on Windows, on the same runner image the release workflow builds the Windows binary on.
+  # There are no API credentials here, so the tests which need the API are skipped. The remaining tests cover
+  # the code which behaves differently on Windows, such as the handling of local paths.
+  test-windows:
+    runs-on: windows-2025
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
+      - name: Test
+        run: go test ./...
