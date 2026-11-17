@@ -2,6 +2,10 @@ package client
 
 import (
 	"context"
+	"io"
+	"mime"
+	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
@@ -237,4 +241,70 @@ func createTestDirectoryStructure(t *testing.T) string {
 	}
 
 	return tmpDir
+}
+
+// Test_FileManager_UploadFile_SendsBaseName ensures that only the name of the file is sent to the API,
+// instead of the local path it is uploaded from.
+func Test_FileManager_UploadFile_SendsBaseName(t *testing.T) {
+	var gotFilename, gotPath string
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		reader, err := r.MultipartReader()
+		if err != nil {
+			t.Errorf("error reading multipart request: %v", err)
+			return
+		}
+
+		for {
+			part, err := reader.NextPart()
+			if err == io.EOF {
+				return
+			}
+			if err != nil {
+				t.Errorf("error reading multipart part: %v", err)
+				return
+			}
+
+			switch part.FormName() {
+			case "file":
+				// part.FileName() strips directories on its own, so we need to check the raw header
+				_, params, err := mime.ParseMediaType(part.Header.Get("Content-Disposition"))
+				if err != nil {
+					t.Errorf("error parsing content disposition: %v", err)
+					return
+				}
+
+				gotFilename = params["filename"]
+			case "path":
+				data, err := io.ReadAll(part)
+				if err != nil {
+					t.Errorf("error reading path: %v", err)
+					return
+				}
+
+				gotPath = string(data)
+			}
+		}
+	}))
+	defer server.Close()
+
+	localPath := filepath.Join(t.TempDir(), "filemanager_test.txt")
+	if err := os.WriteFile(localPath, []byte("filemanager_test"), 0600); err != nil {
+		t.Fatal(err)
+	}
+
+	cli := New().WithBaseURL(server.URL).WithAuthToken("test")
+	m := NewFileManager().WithClient(cli)
+
+	if err := m.UploadFile(context.Background(), "/remote/dir", localPath, true); err != nil {
+		t.Fatal(err)
+	}
+
+	if gotFilename != "filemanager_test.txt" {
+		t.Fatalf("expected filename %q, got %q", "filemanager_test.txt", gotFilename)
+	}
+
+	if gotPath != "/remote/dir" {
+		t.Fatalf("expected path %q, got %q", "/remote/dir", gotPath)
+	}
 }

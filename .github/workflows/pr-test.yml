@@ -1,4 +1,4 @@
-name: static-checks
+name: pr-test
 permissions:
   contents: read
 on:
@@ -9,7 +9,16 @@ on:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    strategy:
+      # The tests which use the API share one account and remove all the files from its file manager,
+      # so they can't run on more than one system at a time.
+      max-parallel: 1
+      # Report the result for each system, even if the tests fail on another one.
+      fail-fast: false
+      matrix:
+        # windows-2025 is the runner the release workflow builds the Windows binary on.
+        os: [ubuntu-latest, windows-2025]
+    runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
       - name: Setup Go
@@ -22,6 +31,15 @@ jobs:
           QBEE_PASSWORD: ${{ secrets.QBEE_API_PASSWORD }}
           QBEE_BASEURL: ${{ secrets.QBEE_API_BASEURL }}
         run: go test ./...
+
+  static-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Setup Go
+        uses: actions/setup-go@v6
+        with:
+          go-version-file: go.mod
       - id: govulncheck
         uses: golang/govulncheck-action@v1
         with:
